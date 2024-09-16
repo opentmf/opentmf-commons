@@ -1,0 +1,14 @@
+{
+  "characteristics": [
+    {
+      "name": "name",
+      "valueType": "valueType",
+      "value": 12,
+      "characteristicRelationship": [
+        {
+          "relationshipType": "dependsOn"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "callback": "http://callback.com",
+  "query": "a=b&c_1=x"
+}
