@@ -11,16 +11,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import lombok.Generated;
 
@@ -33,7 +34,7 @@ public final class JacksonUtil {
   private static final ObjectMapper OBJECT_MAPPER;
 
   static {
-    JAVA_TIME_MODULE.addDeserializer(OffsetDateTime.class, new DelegatingDateTimeDeserializer());
+    JAVA_TIME_MODULE.addDeserializer(OffsetDateTime.class, new PermissiveDateTimeDeserializer());
 
     OBJECT_MAPPER =
         new ObjectMapper()
@@ -199,16 +200,34 @@ public final class JacksonUtil {
     return ClassLoader.getSystemResourceAsStream(textFileNameInClassPath);
   }
 
-  static class DelegatingDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
+  static class PermissiveDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
+
+    private static final DateTimeFormatter FORMATTER =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern("yyyy-MM-dd") // Date part is mandatory
+            .optionalStart()
+            .appendPattern("['T'][' ']HH[:mm[:ss]]") // Optional time part
+            .optionalStart()
+            .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true) // Optional fractional seconds
+            .optionalEnd()
+            .optionalEnd()
+            .optionalStart()
+            .appendPattern("XXX") // Handle "+HH:mm" or "Z"
+            .optionalEnd()
+            .optionalStart()
+            .appendPattern("XX") // Handle "+HHmm"
+            .optionalEnd()
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0) // Default hour to 0
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0) // Default minute to 0
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0) // Default second to 0
+            .parseDefaulting(ChronoField.NANO_OF_SECOND, 0) // Default fractional second to 0
+            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0) // Default to UTC if no timezone
+            .toFormatter(Locale.ENGLISH);
 
     @Override
-    public OffsetDateTime deserialize(JsonParser p, DeserializationContext context)
-        throws IOException {
-      try {
-        return InstantDeserializer.OFFSET_DATE_TIME.deserialize(p, context);
-      } catch (IOException e) {
-        return LocalDateTimeDeserializer.INSTANCE.deserialize(p, context).atOffset(ZoneOffset.UTC);
-      }
+    public OffsetDateTime deserialize(JsonParser p, DeserializationContext context) throws IOException {
+      return OffsetDateTime.parse(p.getText(), FORMATTER);
     }
   }
 }
