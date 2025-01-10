@@ -9,6 +9,63 @@ Below are the provided utility classes within this library. Note that, each publ
 - Provides many utility methods that uses the singleton ObjectMapper instance. That means, if applications expose an ObjectMapper bean themselves, -which should be the case for many applications- they can use the singleton ObjectMapper to further customize it, hence, not losing the ability to use the provided utility methods the way they configured their own ObjectMapper bean.
 - JacksonUtil is a very important class and is used by many pia-commons libraries.
 
+### FieldsSelectionUtil
+- A utility for dynamically selecting and extracting specific fields from a list of objects.
+- This utility also handles the lazy-collections if the bean is a JPA entity.
+
+#### Selecting All Fields
+```java
+List<MyEntity> entities = repository.findAll();
+List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities);
+```
+Output example:
+```json
+[
+  { "id": 1, "name": "John", "surname": "Doe" },
+  { "id": 2, "name": "Jane", "surname": "Doe" }
+]
+```
+
+#### Selecting Specific Fields
+```java
+String fields = "id,name";
+List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities, fields);
+```
+Output example:
+```json
+[
+  { "id": 1, "name": "John" },
+  { "id": 2, "name": "Jane" }
+]
+```
+
+#### Selecting Nested Fields
+You can specify as many nested fields as you want, however the maximum supported depth is 10.
+
+```java
+String fields = "id,classroom.id,classroom.buildingName";
+List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities, fields);
+```
+Output example:
+```json
+[
+  {
+    "id": 1,
+    "classroom": {
+      "id": 101,
+      "buildingName": "Main Building"
+    }
+  }
+]
+```
+
+#### Field Selection Rules
+1. **Comma-separated Fields:** Specify fields using commas, e.g., `id,name`.
+2. **Nested Fields:** Use dot notation for nested fields, e.g., `classroom.id,classroom.professor.name`.
+3. **Collections:** Automatically resolves nested collections, e.g., `students.id` retrieves IDs from each student.
+
+---
+
 ### ValidationUtil
 - Provides on-demand Java (Jakarta) Bean validation
 
