@@ -38,11 +38,15 @@ import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Gokhan Demir
@@ -54,6 +58,33 @@ class JacksonUtilTests {
 
   private static final String INVALID_JSON =
       "{ \"id: \"305f2215715f\", \"href\": \"https://host/Attachment/305f2215715f\" }";
+
+  static Stream<Arguments> offsetDateTimeConversionExpectations() {
+    return Stream.of(
+        Arguments.of("2007-12-03T10:15:29+01:00", "2007-12-03T10:15:29+01:00"),
+        Arguments.of("2007-12-03T10:15:29+0100", "2007-12-03T10:15:29+01:00"),
+        Arguments.of("2007-12-03T10:15:29+00:00", "2007-12-03T10:15:29Z"),
+        Arguments.of("2007-12-03T10:15+00:00", "2007-12-03T10:15Z"),
+        Arguments.of("2007-12-03 10:15+00:00", "2007-12-03T10:15Z"),
+        Arguments.of("2007-12-03 10:15+01:00", "2007-12-03T10:15+01:00"),
+        Arguments.of("2007-12-03", "2007-12-03T00:00Z"),
+        Arguments.of("2007-12-03T10:15:29.123+00:00", "2007-12-03T10:15:29.123Z")
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("offsetDateTimeConversionExpectations")
+  void testOffsetDateTimeDeserialization_withSupportedFormat_returnsExpectedResult(
+      String input, String expected) throws JsonProcessingException {
+    var json = "{\"time\": \"" + input + "\"}";
+    var model = JacksonUtil.getDefaultObjectMapper().readValue(json, SomeModel.class);
+    Assertions.assertEquals(expected, model.getTime().toString());
+  }
+
+  @Getter @Setter
+  static class SomeModel {
+    private OffsetDateTime time;
+  }
 
   @Test
   void test_getDefaultObjectMapper_returnsValidObject() {
