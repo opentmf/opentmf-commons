@@ -15,7 +15,7 @@
     <spring-boot.version>3.4.1</spring-boot.version>
 
     <jakarta.el.version>4.0.2</jakarta.el.version>
-    <commons-beanutils.version>1.9.4</commons-beanutils.version>
+    <commons-beanutils.version>1.10.0</commons-beanutils.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <sonar-plugin.version>5.0.0.4389</sonar-plugin.version>
     <nexus-staging-plugin.version>1.7.0</nexus-staging-plugin.version>
