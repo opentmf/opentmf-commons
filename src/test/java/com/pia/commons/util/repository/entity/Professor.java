@@ -16,12 +16,9 @@ import java.util.Map;
 @Table
 @Entity
 public class Professor {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private int id;
 
-  private String name;
-  private String surname;
+  @EmbeddedId private ProfessorId id;
+
   private OffsetDateTime createdOn;
 
   @OneToMany(mappedBy = "professor")
@@ -34,7 +31,10 @@ public class Professor {
   @ManyToMany
   @JoinTable(
       name = "professor_course",
-      joinColumns = @JoinColumn(name = "professor_id"),
+      joinColumns = {
+        @JoinColumn(name = "professor_name", referencedColumnName = "name"),
+        @JoinColumn(name = "professor_surname", referencedColumnName = "surname")
+      },
       inverseJoinColumns = @JoinColumn(name = "course_id"))
   private List<Course> courses;
 

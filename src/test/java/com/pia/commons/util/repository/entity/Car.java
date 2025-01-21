@@ -19,7 +19,10 @@ public class Car {
   private String brand;
   private String licensePlate;
 
-  @JoinColumn(name = "professor_id")
+  @JoinColumns({
+    @JoinColumn(name = "professor_name", referencedColumnName = "name"),
+    @JoinColumn(name = "professor_surname", referencedColumnName = "surname")
+  })
   @ManyToOne(fetch = FetchType.LAZY)
   private Professor professor;
 }

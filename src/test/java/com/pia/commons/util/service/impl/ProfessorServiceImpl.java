@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-import static com.pia.commons.util.FieldSelectionUtil.fieldsToMapList;
+import static com.pia.commons.util.fieldselection.FieldSelectionUtil.fieldsToMapList;
 
 /**
  * @author Abdullah Beker

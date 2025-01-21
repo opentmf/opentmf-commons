@@ -1,10 +1,4 @@
-package com.pia.commons.util;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.experimental.UtilityClass;
-import org.apache.commons.beanutils.PropertyUtils;
+package com.pia.commons.util.fieldselection;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -14,6 +8,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.beanutils.PropertyUtils;
 
 /**
  * Utility class for selecting specific fields from a list of objects and mapping them to a
@@ -24,6 +23,8 @@ import java.util.*;
  */
 @UtilityClass
 public class FieldSelectionUtil {
+
+  private static FieldHelper fieldHelper = FieldHelperProvider.getFieldHelper();
 
   public static Map<String, Object> fieldsToMap(Object obj) {
     return convertToMapList(List.of(obj), null, 1).get(0);
@@ -132,7 +133,14 @@ public class FieldSelectionUtil {
       String fieldName = entry.getKey();
       Map<String, FieldNode> fieldDefinition = entry.getValue().getFields();
 
-      Object value = getValue(element.getClass(), fieldName, element);
+      Object value;
+      if (entry.getValue().getEmbeddedIdName() != null) {
+        Object idValue =
+            getValue(element.getClass(), entry.getValue().getEmbeddedIdName(), element);
+        value = getValue(idValue.getClass(), fieldName, idValue);
+      } else {
+        value = getValue(element.getClass(), fieldName, element);
+      }
 
       if (fieldDefinition != null && value != null) {
         assignNestedValues(objectMap, value, fieldDefinition, fieldName);
@@ -213,13 +221,22 @@ public class FieldSelectionUtil {
     for (PropertyDescriptor pd : props) {
       String fieldName = pd.getName();
       Class<?> aClass = getType(pd);
-      List<PropertyDescriptor> properties = getProperties(aClass);
-      if (properties.isEmpty()) {
-        fieldMap.put(fieldName, new FieldNode());
+      if (fieldHelper.isEmbeddedId(clazz, pd)) {
+        Map<String, FieldNode> idFieldMap = resolveProperties(aClass, 0);
+        idFieldMap.forEach(
+            (k, v) -> {
+              v.setEmbeddedIdName(fieldName);
+              fieldMap.put(k, v);
+            });
       } else {
-        Map<String, FieldNode> map = resolveProperties(aClass, depth - 1);
-        if (!map.isEmpty()) {
-          fieldMap.put(fieldName, new FieldNode(map));
+        List<PropertyDescriptor> properties = getProperties(aClass);
+        if (properties.isEmpty()) {
+          fieldMap.put(fieldName, new FieldNode());
+        } else {
+          Map<String, FieldNode> map = resolveProperties(aClass, depth - 1);
+          if (!map.isEmpty()) {
+            fieldMap.put(fieldName, new FieldNode(map));
+          }
         }
       }
     }
@@ -247,7 +264,7 @@ public class FieldSelectionUtil {
       set.add(field.trim());
     }
 
-    parseFieldsRecursive(beanClass, set, root, "", 0);
+    parseFieldsRecursive(beanClass, set, root, "", 0, null);
 
     return root;
   }
@@ -257,44 +274,58 @@ public class FieldSelectionUtil {
       SortedSet<String> fields,
       Map<String, FieldNode> map,
       String base,
-      int level) {
+      int level,
+      String embeddedIdFieldName) {
     if (fields.isEmpty() || level > 10) {
       return;
     }
     List<PropertyDescriptor> properties = getProperties(beanClass);
-    for (var prop : properties) {
-      String name = prop.getName();
-      String path = base + name;
-      Class<?> propertyType = getType(prop);
-      List<PropertyDescriptor> nestedProperties = getProperties(propertyType);
-      if (fields.contains(path)) {
-        if (nestedProperties.isEmpty()) {
-          map.put(name, new FieldNode());
-        } else {
-          Map<String, FieldNode> nestedMap = new LinkedHashMap<>();
-          for (PropertyDescriptor nestedProp : nestedProperties) {
-            if (getProperties(getType(nestedProp)).isEmpty()) {
-              nestedMap.put(nestedProp.getName(), new FieldNode());
+    for (var pd : properties) {
+      String name = pd.getName();
+      Class<?> propertyType = getType(pd);
+      if (fieldHelper.isEmbeddedId(beanClass, pd)) {
+        parseFieldsRecursive(propertyType, fields, map, base, level, name);
+      } else {
+        String path = base + name;
+        List<PropertyDescriptor> nestedProperties = getProperties(propertyType);
+        if (fields.contains(path)) {
+          if (nestedProperties.isEmpty()) {
+            map.put(name, new FieldNode(embeddedIdFieldName));
+          } else {
+            Map<String, FieldNode> nestedMap = new LinkedHashMap<>();
+            for (PropertyDescriptor nestedProp : nestedProperties) {
+              if (getProperties(getType(nestedProp)).isEmpty()) {
+                nestedMap.put(nestedProp.getName(), new FieldNode());
+              }
             }
+            map.put(name, new FieldNode(nestedMap));
           }
-          map.put(name, new FieldNode(nestedMap));
+          fields.remove(path);
         }
-        fields.remove(path);
-      }
-      if (!nestedProperties.isEmpty()) {
-        Map<String, FieldNode> nestedMap = new LinkedHashMap<>();
-        parseFieldsRecursive(propertyType, fields, nestedMap, path + ".", level + 1);
-        if (!nestedMap.isEmpty()) {
-          map.put(name, new FieldNode(nestedMap));
+        if (!nestedProperties.isEmpty()) {
+          Map<String, FieldNode> nestedMap = new LinkedHashMap<>();
+          parseFieldsRecursive(propertyType, fields, nestedMap, path + ".", level + 1, null);
+          if (!nestedMap.isEmpty()) {
+            map.put(name, new FieldNode(nestedMap));
+          }
         }
       }
     }
   }
 
+  @Setter
   @Getter
-  @AllArgsConstructor
   @NoArgsConstructor
   class FieldNode {
     private Map<String, FieldNode> fields;
+    private String embeddedIdName;
+
+    public FieldNode(Map<String, FieldNode> fields) {
+      this.fields = fields;
+    }
+
+    public FieldNode(String embeddedIdName) {
+      this.embeddedIdName = embeddedIdName;
+    }
   }
 }

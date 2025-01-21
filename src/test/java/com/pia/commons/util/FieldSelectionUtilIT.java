@@ -43,48 +43,49 @@ class FieldSelectionUtilIT {
         .andDo(print())
         .andExpectAll(
             status().isOk(),
-            jsonPath("$.content.[*].id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].name", everyItem(notNullValue())),
-            jsonPath("$.content.[*].surname", everyItem(notNullValue())),
-            jsonPath("$.content.[*].createdOn", everyItem(notNullValue())),
-            jsonPath("$.content.[*].student.[*].id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].student.[*].name", everyItem(notNullValue())),
-            jsonPath("$.content.[*].student.[*].surname", everyItem(notNullValue())),
-            jsonPath("$.content.[*].classroom.id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].classroom.buildingName", everyItem(notNullValue())),
-            jsonPath("$.content.[*].classroom.buildingCode", everyItem(notNullValue())),
-            jsonPath("$.content.[*].classroom.floor", everyItem(notNullValue())),
-            jsonPath("$.content.[*].classroom.doorCode", everyItem(notNullValue())),
-            jsonPath("$.content.[*].cars..id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].cars..brand", everyItem(notNullValue())),
-            jsonPath("$.content.[*].cars..licensePlate", everyItem(notNullValue())),
-            jsonPath("$.content.[*].courses.id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].courses.credits", everyItem(notNullValue())),
-            jsonPath("$.content.[*].courses.name", everyItem(notNullValue())));
+            jsonPath("$.content.[0].name", notNullValue()),
+            jsonPath("$.content.[0].surname", notNullValue()),
+            jsonPath("$.content.[0].createdOn", notNullValue()),
+            jsonPath("$.content.[0].student.[*]", hasSize(is(3))),
+            jsonPath("$.content.[0].student.[*].id", everyItem(notNullValue())),
+            jsonPath("$.content.[0].student.[*].name", everyItem(notNullValue())),
+            jsonPath("$.content.[0].student.[*].surname", everyItem(notNullValue())),
+            jsonPath("$.content.[0].classroom.id", notNullValue()),
+            jsonPath("$.content.[0].classroom.buildingName", notNullValue()),
+            jsonPath("$.content.[0].classroom.buildingCode", notNullValue()),
+            jsonPath("$.content.[0].classroom.floor", notNullValue()),
+            jsonPath("$.content.[0].classroom.doorCode", notNullValue()),
+            jsonPath("$.content.[0].cars..id", everyItem(notNullValue())),
+            jsonPath("$.content.[0].cars..brand", everyItem(notNullValue())),
+            jsonPath("$.content.[0].cars..licensePlate", everyItem(notNullValue())),
+            jsonPath("$.content.[0].courses.[*].id", everyItem(notNullValue())),
+            jsonPath("$.content.[0].courses.[*].credits", everyItem(notNullValue())),
+            jsonPath("$.content.[0].courses.[*].name", everyItem(notNullValue())));
   }
 
   @Test
   void testFieldsSelector_withRootLevelFields_returnRootLevelFieldsOnly() throws Exception {
     mockMvc
-        .perform(get(API_URL).param("size", "1").param("fields", "id,name,student.name"))
+        .perform(get(API_URL).param("size", "1").param("fields", "name,student.name"))
         .andDo(print())
         .andExpectAll(
             status().isOk(),
-            jsonPath("$.content.[*].id", everyItem(notNullValue())),
-            jsonPath("$.content.[*].name", everyItem(notNullValue())),
-            jsonPath("$.content.[*].student.[*].id", hasSize(0)),
-            jsonPath("$.content.[*].student.[*].name", everyItem(notNullValue())),
-            jsonPath("$.content.[*].student.[*].surname", hasSize(0)),
-            jsonPath("$.content.[*].classroom.id", hasSize(0)),
-            jsonPath("$.content.[*].classroom.buildingName", hasSize(0)),
-            jsonPath("$.content.[*].classroom.buildingCode", hasSize(0)),
-            jsonPath("$.content.[*].classroom.floor", hasSize(0)),
-            jsonPath("$.content.[*].classroom.doorCode", hasSize(0)),
-            jsonPath("$.content.[*].cars..id", hasSize(0)),
-            jsonPath("$.content.[*].cars..brand", hasSize(0)),
-            jsonPath("$.content.[*].cars..licensePlate", hasSize(0)),
-            jsonPath("$.content.[*].courses.id", hasSize(0)),
-            jsonPath("$.content.[*].courses.credits", hasSize(0)),
-            jsonPath("$.content.[*].courses.name", hasSize(0)));
+            jsonPath("$.content.[0].name", notNullValue()),
+            jsonPath("$.content.[0].student.[*]", hasSize(is(3))),
+            jsonPath("$.content.[0].student.[*].id", hasSize(0)),
+            jsonPath("$.content.[0].student.[*].name", hasSize(is(3))),
+            jsonPath("$.content.[0].student.[*].name", everyItem(notNullValue())),
+            jsonPath("$.content.[0].student.[*].surname", hasSize(0)),
+            jsonPath("$.content.[0].classroom.id").doesNotExist(),
+            jsonPath("$.content.[0].classroom.buildingName").doesNotExist(),
+            jsonPath("$.content.[0].classroom.buildingCode").doesNotExist(),
+            jsonPath("$.content.[0].classroom.floor").doesNotExist(),
+            jsonPath("$.content.[0].classroom.doorCode").doesNotExist(),
+            jsonPath("$.content.[0].cars..id").doesNotExist(),
+            jsonPath("$.content.[0].cars..brand").doesNotExist(),
+            jsonPath("$.content.[0].cars..licensePlate").doesNotExist(),
+            jsonPath("$.content.[0].courses.[*].id").doesNotExist(),
+            jsonPath("$.content.[0].courses.[*].credits").doesNotExist(),
+            jsonPath("$.content.[0].courses.[*].name").doesNotExist());
   }
 }
