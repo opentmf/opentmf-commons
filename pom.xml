@@ -4,7 +4,7 @@
 
   <groupId>com.pia.commons</groupId>
   <artifactId>pia-commons</artifactId>
-  <version>1.0.2-SNAPSHOT</version>
+  <version>1.0.2</version>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -146,7 +146,7 @@
   <scm>
     <connection>scm:git:git@github.com:pia-commons/pia-commons.git</connection>
     <developerConnection>scm:git:git@github.com:pia-commons/pia-commons.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>pia-commons-1.0.2</tag>
   </scm>
 
   <build>
