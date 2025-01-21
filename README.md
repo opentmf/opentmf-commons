@@ -11,7 +11,8 @@ Below are the provided utility classes within this library. Note that, each publ
 
 ### FieldsSelectionUtil
 - A utility for dynamically selecting and extracting specific fields from a list of objects.
-- This utility also handles the lazy-collections if the bean is a JPA entity.
+- This utility also handles the lazy-collections if the bean is a JPA entity and the JPA EntityManager is not closed.
+- It handles EmbeddedId fields by excluding the embeddedId field name. or example, if the embeddedId field name is id, and it contains field1 and field2, instead of exposing them as id.field1 and id.field2, it exposes them as field1, field2 by default. 
 
 #### Selecting All Fields
 ```java
@@ -160,3 +161,6 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 - Fixes OffsetDateTime deserializer to prevent losing the original timezone designator.
 - Updates to Spring Boot 3.4.1
 - Adds FieldSelectionUtil.
+### 1.0.2
+- FieldSelectionUtil has been moved to com.pia.commons.util.fieldselection package.
+- FieldSelectionUtil now handles EmbeddedId fields. Instead of id.field1, id.field2, it exposes them as field1, field2 by default.  
