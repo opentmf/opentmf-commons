@@ -19,7 +19,10 @@ public class Student {
   private String name;
   private String surname;
 
-  @JoinColumn
+  @JoinColumns({
+    @JoinColumn(name = "professor_name", referencedColumnName = "name"),
+    @JoinColumn(name = "professor_surname", referencedColumnName = "surname")
+  })
   @ManyToOne(fetch = FetchType.LAZY)
   public Professor professor;
 }
