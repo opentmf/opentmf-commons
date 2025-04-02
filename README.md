@@ -1,4 +1,4 @@
-# pia-commons
+# opentmf-commons
 General purpose utility classes and annotations for any Java project.
 
 ## Provided Utilities
@@ -7,7 +7,7 @@ Below are the provided utility classes within this library. Note that, each publ
 ### JacksonUtil
 - Provides a singleton ObjectMapper instance.
 - Provides many utility methods that uses the singleton ObjectMapper instance. That means, if applications expose an ObjectMapper bean themselves, -which should be the case for many applications- they can use the singleton ObjectMapper to further customize it, hence, not losing the ability to use the provided utility methods the way they configured their own ObjectMapper bean.
-- JacksonUtil is a very important class and is used by many pia-commons libraries.
+- JacksonUtil is a very important class and is used by many opentmf-commons libraries.
 
 ### FieldsSelectionUtil
 - A utility for dynamically selecting and extracting specific fields from a list of objects.
@@ -126,16 +126,16 @@ Output example:
 ## Usage
 
 ### Maven Dependency
-Many pia-commons libraries depend on this base library. In most cases not necessary to explicitly include the dependency. 
+Many opentmf-commons libraries depend on this base library. In most cases not necessary to explicitly include the dependency. 
 
-In any way, if you want to directly depend on this utility, the best way is, after importing the managed dependencies of the pia-commons repositories: 
+In any way, if you want to directly depend on this utility, the best way is, after importing the managed dependencies of the opentmf-commons repositories: 
 
 ```xml
 <dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>com.pia.commons</groupId>
-      <artifactId>pia-commons-versions</artifactId>
+      <groupId>org.opentmf.commons</groupId>
+      <artifactId>opentmf-commons-versions</artifactId>
       <type>pom</type>
       <scope>import</scope>
       <version>RELEASE</version>
@@ -145,11 +145,11 @@ In any way, if you want to directly depend on this utility, the best way is, aft
 ```
 > Note that instead of `RELEASE`, you might want to specify a static version number to retain build predictability for the future.
 
-And then we will be able to depend on this pia-commons library without specifying a version.
+And then we will be able to depend on this opentmf-commons library without specifying a version.
 ```xml
 <dependency>
-  <groupId>com.pia.commons</groupId>
-  <artifactId>pia-commons</artifactId>
+  <groupId>org.opentmf.commons</groupId>
+  <artifactId>opentmf-commons</artifactId>
 </dependency>
 ```
 Of course, you can opt to specify a version number explicitly as well, bypassing the above dependency import section.
@@ -162,5 +162,5 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 - Updates to Spring Boot 3.4.1
 - Adds FieldSelectionUtil.
 ### 1.0.2
-- FieldSelectionUtil has been moved to com.pia.commons.util.fieldselection package.
+- FieldSelectionUtil has been moved to org.opentmf.commons.util.fieldselection package.
 - FieldSelectionUtil now handles EmbeddedId fields. Instead of id.field1, id.field2, it exposes them as field1, field2 by default.  
