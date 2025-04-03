@@ -180,6 +180,7 @@
   </dependencies>
 
   <scm>
+    <url>https://github.com/opentmf/opentmf-commons</url>
     <connection>scm:git:git@github.com:opentmf/opentmf-commons.git</connection>
     <developerConnection>scm:git:git@github.com:opentmf/opentmf-commons.git</developerConnection>
     <tag>HEAD</tag>
@@ -263,7 +264,6 @@
         <executions>
           <execution>
             <id>attach-sources</id>
-            <phase>deploy</phase>
             <goals>
               <goal>jar-no-fork</goal>
             </goals>
@@ -277,7 +277,6 @@
         <executions>
           <execution>
             <id>attach-javadocs</id>
-            <phase>deploy</phase>
             <goals>
               <goal>jar</goal>
             </goals>
@@ -307,7 +306,6 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>${maven-release-plugin.version}</version>
         <configuration>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
           <useReleaseProfile>false</useReleaseProfile>
           <goals>deploy</goals>
         </configuration>

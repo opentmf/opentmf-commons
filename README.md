@@ -164,3 +164,7 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 ### 1.0.2
 - FieldSelectionUtil has been moved to org.opentmf.commons.util.fieldselection package.
 - FieldSelectionUtil now handles EmbeddedId fields. Instead of id.field1, id.field2, it exposes them as field1, field2 by default.  
+### 1.0.3
+- Preparations to move to central repository  
+### 1.0.4
+- Initial central repository release.  
