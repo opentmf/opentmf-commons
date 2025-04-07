@@ -4,6 +4,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opentmf.tmf.model.Addressable;
 import org.opentmf.tmf.model.TimePeriod;
 
@@ -282,6 +284,18 @@ class JacksonUtilTests {
     var map = jsonToMap(json);
     Assertions.assertNotNull(map);
     assertEquals(2, map.size());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "json/time_period_empty_date.json",
+      "json/time_period_null_date.json"
+  })
+  void test_jsonToObject_withEmptyOrNullDateTime_deserializesDateTimeAsNull(String path) {
+    var json = contents(path);
+    var timePeriod = jsonToObject(json, TimePeriod.class);
+    Assertions.assertNotNull(timePeriod);
+    assertNull(timePeriod.getEndDateTime());
   }
 
   private static final String TEST_OBJECT_STRING =

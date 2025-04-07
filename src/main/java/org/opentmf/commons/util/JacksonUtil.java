@@ -227,7 +227,11 @@ public final class JacksonUtil {
 
     @Override
     public OffsetDateTime deserialize(JsonParser p, DeserializationContext context) throws IOException {
-      return OffsetDateTime.parse(p.getText(), FORMATTER);
+      var text = p.getText();
+      if (text == null || text.trim().isEmpty()) {
+        return null;
+      }
+      return OffsetDateTime.parse(text, FORMATTER);
     }
   }
 }

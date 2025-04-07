@@ -134,8 +134,8 @@ In any way, if you want to directly depend on this utility, the best way is, aft
 <dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>org.opentmf.commons</groupId>
-      <artifactId>opentmf-commons-versions</artifactId>
+      <groupId>org.opentmf</groupId>
+      <artifactId>opentmf-versions</artifactId>
       <type>pom</type>
       <scope>import</scope>
       <version>RELEASE</version>
@@ -168,3 +168,5 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 - Preparations to move to central repository  
 ### 1.0.4
 - Initial central repository release.  
+### 1.0.5
+- Fix: Handles empty string and null values in OffsetDateTime deserialization  
