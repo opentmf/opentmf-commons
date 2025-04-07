@@ -4,7 +4,7 @@
 
   <groupId>org.opentmf.commons</groupId>
   <artifactId>opentmf-commons</artifactId>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.0.5</version>
   <description>
     General purpose utility classes and annotations for any Java project.
   </description>
@@ -183,7 +183,7 @@
     <url>https://github.com/opentmf/opentmf-commons</url>
     <connection>scm:git:git@github.com:opentmf/opentmf-commons.git</connection>
     <developerConnection>scm:git:git@github.com:opentmf/opentmf-commons.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>opentmf-commons-1.0.5</tag>
   </scm>
 
   <build>
