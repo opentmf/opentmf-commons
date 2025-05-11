@@ -169,4 +169,6 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 ### 1.0.4
 - Initial central repository release.  
 ### 1.0.5
-- Fix: Handles empty string and null values in OffsetDateTime deserialization  
+- Fix: Handles empty string and null values in OffsetDateTime deserialization
+### 1.0.6
+- Improvement: Handle also the numeric values in OffsetDateTime deserialization

@@ -3,6 +3,7 @@ package org.opentmf.commons.util;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -16,7 +17,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -202,36 +205,93 @@ public final class JacksonUtil {
 
   static class PermissiveDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
 
+    /* ---------- 1. The flexible ISO-ish formatter (unchanged) ---------- */
     private static final DateTimeFormatter FORMATTER =
         new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
-            .appendPattern("yyyy-MM-dd") // Date part is mandatory
+            .appendPattern("yyyy-MM-dd")
             .optionalStart()
-            .appendPattern("['T'][' ']HH[:mm[:ss]]") // Optional time part
+            .appendPattern("['T'][' ']HH[:mm[:ss]]")
             .optionalStart()
-            .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true) // Optional fractional seconds
+            .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
             .optionalEnd()
             .optionalEnd()
-            .optionalStart()
-            .appendPattern("XXX") // Handle "+HH:mm" or "Z"
-            .optionalEnd()
-            .optionalStart()
-            .appendPattern("XX") // Handle "+HHmm"
-            .optionalEnd()
-            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0) // Default hour to 0
-            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0) // Default minute to 0
-            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0) // Default second to 0
-            .parseDefaulting(ChronoField.NANO_OF_SECOND, 0) // Default fractional second to 0
-            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0) // Default to UTC if no timezone
+            .optionalStart().appendPattern("XXX").optionalEnd()
+            .optionalStart().appendPattern("XX").optionalEnd()
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+            .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
+            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0)
             .toFormatter(Locale.ENGLISH);
 
+    /* ---------- 2. Tell Jackson what to return for a JSON null ---------- */
     @Override
-    public OffsetDateTime deserialize(JsonParser p, DeserializationContext context) throws IOException {
-      var text = p.getText();
-      if (text == null || text.trim().isEmpty()) {
+    public OffsetDateTime getNullValue(DeserializationContext ctxt) {
+      return null;                         // same semantic as before
+    }
+
+    /* ---------- 3. Core deserialization logic (no VALUE_NULL branch) ---- */
+    @Override
+    public OffsetDateTime deserialize(JsonParser p, DeserializationContext ctx) throws IOException {
+
+      JsonToken token = p.currentToken();
+
+      /* a) Numeric token  -> epoch-milliseconds ----------------------- */
+      if (token == JsonToken.VALUE_NUMBER_INT) {
+        return toOffsetDateTime(p.getLongValue());
+      }
+
+      /* b) Expect a string from here on ------------------------------ */
+      if (token != JsonToken.VALUE_STRING) {
+        return (OffsetDateTime) ctx.handleUnexpectedToken(OffsetDateTime.class, p);
+      }
+
+      String txt = p.getText();
+      if (txt == null) {                   // defensive; shouldn’t happen
         return null;
       }
-      return OffsetDateTime.parse(text, FORMATTER);
+
+      String s = txt.trim();
+      if (s.isEmpty()) {                   // blank string -> null
+        return null;
+      }
+
+      /* b1) Purely numeric string  -> epoch-milliseconds -------------- */
+      if (isNumeric(s)) {
+        try {
+          return toOffsetDateTime(Long.parseLong(s));
+        } catch (NumberFormatException ex) {
+          // too big for long -> fall through to formatter and let it fail
+        }
+      }
+
+      /* b2) Otherwise parse with the formatter ----------------------- */
+      return OffsetDateTime.parse(s, FORMATTER);
     }
-  }
-}
+
+    /* ---------- 4. Helpers -------------------------------------------- */
+
+    private static OffsetDateTime toOffsetDateTime(long epochMillis) {
+      return OffsetDateTime.ofInstant(Instant.ofEpochMilli(epochMillis),
+          ZoneOffset.UTC);
+    }
+
+    /** Test for [+|-]?[0-9]+ without regex allocation. */
+    private static boolean isNumeric(String s) {
+      var len = s.length();
+      if (len == 0) {
+        return false;
+      }
+      var i = 0;
+      var c = s.charAt(0);
+      if (c == '+' || c == '-') {
+        if (len == 1) return false;
+        i = 1;
+      }
+      for (; i < len; i++) {
+        if (!Character.isDigit(s.charAt(i))) return false;
+      }
+      return true;
+    }
+  }}

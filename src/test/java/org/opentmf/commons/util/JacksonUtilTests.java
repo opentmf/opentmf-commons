@@ -3,6 +3,7 @@ package org.opentmf.commons.util;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,7 +28,10 @@ import static org.opentmf.commons.util.JacksonUtil.treeToObject;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
 import java.io.IOException;
@@ -70,7 +74,10 @@ class JacksonUtilTests {
         Arguments.of("2007-12-03 10:15+00:00", "2007-12-03T10:15Z"),
         Arguments.of("2007-12-03 10:15+01:00", "2007-12-03T10:15+01:00"),
         Arguments.of("2007-12-03", "2007-12-03T00:00Z"),
-        Arguments.of("2007-12-03T10:15:29.123+00:00", "2007-12-03T10:15:29.123Z")
+        Arguments.of("2007-12-03T10:15:29.123+00:00", "2007-12-03T10:15:29.123Z"),
+        Arguments.of("0", "1970-01-01T00:00Z"),
+        Arguments.of("1746984326519", "2025-05-11T17:25:26.519Z"),
+        Arguments.of("-1000", "1969-12-31T23:59:59Z")
     );
   }
 
@@ -81,6 +88,40 @@ class JacksonUtilTests {
     var json = "{\"time\": \"" + input + "\"}";
     var model = JacksonUtil.getDefaultObjectMapper().readValue(json, SomeModel.class);
     Assertions.assertEquals(expected, model.getTime().toString());
+  }
+
+  @Test
+  void testOffsetDateTimeDeserialization_withNumericValue_returnsExpectedResult() {
+    var json = "{\"time\": 0}";
+    SomeModel someModel = jsonToObject(json, SomeModel.class);
+    assertEquals(0, someModel.getTime().toInstant().toEpochMilli());
+  }
+
+  @Test
+  void testOffsetDateTimeDeserialization_withUnsupportedObjectType_throwsUnexpectedToken() {
+    var json = "{\"time\": true}";
+    var e = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> jsonToObject(json, SomeModel.class));
+    assertInstanceOf(MismatchedInputException.class, ExceptionUtils.getRootCause(e));
+  }
+
+  @Test
+  void testOffsetDateTimeDeserialization_withOutOfRangeLong_throwsException() {
+    var json = "{\"time\": 174698432651900098746908000}";
+    ObjectMapper defaultObjectMapper = getDefaultObjectMapper();
+    assertThrows(JsonMappingException.class, () -> defaultObjectMapper.readValue(json, SomeModel.class));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "{\"time\": \"   \"}",
+      "{\"time\": \"\"}",
+      "{\"time\": null}",
+      "{}",
+  })
+  void testOffsetDateTimeDeserialization_withWhiteSpaceOnlyOrNull_parsesDateTimeAsNull(String json) {
+    SomeModel someModel = jsonToObject(json, SomeModel.class);
+    assertNull(someModel.getTime());
   }
 
   @Getter @Setter
@@ -291,7 +332,7 @@ class JacksonUtilTests {
       "json/time_period_empty_date.json",
       "json/time_period_null_date.json"
   })
-  void test_jsonToObject_withEmptyOrNullDateTime_deserializesDateTimeAsNull(String path) {
+  void testJsonToObject_withEmptyOrNullDateTime_deserializesDateTimeAsNull(String path) {
     var json = contents(path);
     var timePeriod = jsonToObject(json, TimePeriod.class);
     Assertions.assertNotNull(timePeriod);
