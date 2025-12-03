@@ -172,3 +172,5 @@ Of course, you can opt to specify a version number explicitly as well, bypassing
 - Fix: Handles empty string and null values in OffsetDateTime deserialization
 ### 1.0.6
 - Improvement: Handle also the numeric values in OffsetDateTime deserialization
+### 1.0.7
+- Fix: JacksonUtil's inputStream method now uses the current thread's classloader to load the classpath resource.

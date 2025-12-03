@@ -200,7 +200,13 @@ public final class JacksonUtil {
   }
 
   public static InputStream inputStream(String textFileNameInClassPath) {
-    return ClassLoader.getSystemResourceAsStream(textFileNameInClassPath);
+    var cl = Thread.currentThread().getContextClassLoader();
+    var inputStream = cl.getResourceAsStream(textFileNameInClassPath);
+    if (inputStream == null) {
+      throw new IllegalArgumentException(
+          "Resource not found on classpath: " + textFileNameInClassPath);
+    }
+    return inputStream;
   }
 
   static class PermissiveDateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
