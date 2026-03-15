@@ -8,6 +8,7 @@ import jakarta.validation.ValidatorFactory;
 import java.util.Set;
 import lombok.Generated;
 
+/** Provides on-demand Jakarta Bean Validation utilities. */
 public final class ValidationUtil {
 
   private static final ValidatorFactory FACTORY = Validation.buildDefaultValidatorFactory();
@@ -54,8 +55,7 @@ public final class ValidationUtil {
       }
       buf.append("Violation ").append(n).append(": ");
       buf.append(violation.getPropertyPath())
-          .append(" = ").append(violation.getInvalidValue()).append(" --> ")
-          .append(violation.getMessage());
+          .append(" --> ").append(violation.getMessage());
     }
     return buf.toString();
   }

@@ -17,20 +17,19 @@ import org.opentmf.commons.validation.SafeQueryValidator;
 
 /**
  * Allows only certain safe characters to exist in a query string.
- * <p>
- *   The allowed characters are:
- *   <ul>
- *     <li>Alphanumeric characters</li>
- *     <li>Equals (=)</li>
- *     <li>Minus (-)</li>
- *     <li>Plus (+)</li>
- *     <li>Space ( )</li>
- *     <li>Asterisk (*)</li>
- *     <li>Dot (.)</li>
- *     <li>Underscore (_)</li>
- *     <li>Ampersand (&)</li>
- *   </ul>
- * </p>
+ * The allowed characters are:
+ * <ul>
+ *   <li>Alphanumeric characters</li>
+ *   <li>Equals (=)</li>
+ *   <li>Minus (-)</li>
+ *   <li>Plus (+)</li>
+ *   <li>Space ( )</li>
+ *   <li>Asterisk (*)</li>
+ *   <li>Dot (.)</li>
+ *   <li>Underscore (_)</li>
+ *   <li>At sign (@)</li>
+ *   <li>Ampersand (&amp;)</li>
+ * </ul>
  *
  * @author Gokhan Demir
  */
@@ -40,10 +39,13 @@ import org.opentmf.commons.validation.SafeQueryValidator;
 @Retention(RUNTIME)
 public @interface SafeQuery {
 
-  String message() default "Only alphanumeric characters, equals, minus, plus, space, ampersand, "
-      + "asterisk, dot, underscore and ampersand are allowed.";
+  /** @return the error message template. */
+  String message() default "Only alphanumeric characters, equals, minus, plus, space, "
+      + "asterisk, dot, underscore, at sign and ampersand are allowed.";
 
+  /** @return the validation groups. */
   Class<?>[] groups() default {};
 
+  /** @return the payload. */
   Class<? extends Payload>[] payload() default {};
 }

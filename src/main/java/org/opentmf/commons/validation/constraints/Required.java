@@ -25,10 +25,13 @@ import org.opentmf.commons.validation.RequiredValidator;
 @Retention(RUNTIME)
 public @interface Required {
 
+  /** @return the error message template. */
   String message() default "Missing values for the required {nullFields}";
 
+  /** @return the validation groups. */
   Class<?>[] groups() default {};
 
+  /** @return the payload. */
   Class<? extends Payload>[] payload() default {};
 
   /**

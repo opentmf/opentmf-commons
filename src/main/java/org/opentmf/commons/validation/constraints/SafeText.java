@@ -18,20 +18,19 @@ import org.opentmf.commons.validation.SafeTextValidator;
 /**
  * Allows only certain safe characters within the text field to defend against potential code
  * injection attacks.
- * <p>
- *   The allowed characters are:
- *   <ul>
- *     <li>Alphanumeric characters</li>
- *     <li>Minus (-)</li>
- *     <li>Plus (+)</li>
- *     <li>Space ( )</li>
- *     <li>Asterisk (*)</li>
- *     <li>Slash (/)</li>
- *     <li>Dot (.)</li>
- *     <li>Colon (:)</li>
- *     <li>Underscore (_)</li>
- *   </ul>
- * </p>
+ * The allowed characters are:
+ * <ul>
+ *   <li>Alphanumeric characters</li>
+ *   <li>Minus (-)</li>
+ *   <li>Plus (+)</li>
+ *   <li>Percent (%)</li>
+ *   <li>Space ( )</li>
+ *   <li>Asterisk (*)</li>
+ *   <li>Slash (/)</li>
+ *   <li>Dot (.)</li>
+ *   <li>Colon (:)</li>
+ *   <li>Underscore (_)</li>
+ * </ul>
  *
  * @author Yusuf Bozkurt
  */
@@ -41,10 +40,13 @@ import org.opentmf.commons.validation.SafeTextValidator;
 @Retention(RUNTIME)
 public @interface SafeText {
 
+  /** @return the error message template. */
   String message() default "Only alphanumeric characters, minus, plus, space, asterisk, "
         + "slash, dot, colon and underscore are allowed.";
 
+  /** @return the validation groups. */
   Class<?>[] groups() default {};
 
+  /** @return the payload. */
   Class<? extends Payload>[] payload() default {};
 }

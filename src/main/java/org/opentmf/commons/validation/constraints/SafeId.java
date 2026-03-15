@@ -18,14 +18,12 @@ import org.opentmf.commons.validation.SafeIdValidator;
 /**
  * Allows only certain safe characters within the text field to defend against potential code
  * injection attacks.
- * <p>
- *   The allowed characters are:
- *   <ul>
- *     <li>Alphanumeric characters</li>
- *     <li>Minus (-)</li>
- *     <li>Underscore (_)</li>
- *   </ul>
- * </p>
+ * The allowed characters are:
+ * <ul>
+ *   <li>Alphanumeric characters</li>
+ *   <li>Minus (-)</li>
+ *   <li>Underscore (_)</li>
+ * </ul>
  *
  * @author Gokhan Demir
  */
@@ -35,9 +33,12 @@ import org.opentmf.commons.validation.SafeIdValidator;
 @Retention(RUNTIME)
 public @interface SafeId {
 
+  /** @return the error message template. */
   String message() default "Only alphanumeric characters, minus, and underscore are allowed.";
 
+  /** @return the validation groups. */
   Class<?>[] groups() default {};
 
+  /** @return the payload. */
   Class<? extends Payload>[] payload() default {};
 }

@@ -1,134 +1,127 @@
 # opentmf-commons
+
 General purpose utility classes and annotations for any Java project.
 
+Compiled with **Java 17**. Uses **Jackson 3** and dependencies managed via **Spring Boot 4.0.x** BOM.
+
 ## Provided Utilities
-Below are the provided utility classes within this library. Note that, each public utility class and their public methods have Javadoc documentation. Here is the summary of the utility classes and their abilities:
+
+Each public utility class and its public methods have Javadoc documentation. Below is a summary.
 
 ### JacksonUtil
-- Provides a singleton ObjectMapper instance.
-- Provides many utility methods that uses the singleton ObjectMapper instance. That means, if applications expose an ObjectMapper bean themselves, -which should be the case for many applications- they can use the singleton ObjectMapper to further customize it, hence, not losing the ability to use the provided utility methods the way they configured their own ObjectMapper bean.
-- JacksonUtil is a very important class and is used by many opentmf-commons libraries.
 
-### FieldsSelectionUtil
-- A utility for dynamically selecting and extracting specific fields from a list of objects.
-- This utility also handles the lazy-collections if the bean is a JPA entity and the JPA EntityManager is not closed.
-- It handles EmbeddedId fields by excluding the embeddedId field name. or example, if the embeddedId field name is id, and it contains field1 and field2, instead of exposing them as id.field1 and id.field2, it exposes them as field1, field2 by default. 
+Provides a pre-configured `ObjectMapper` and a rich set of static helper methods for JSON serialization, deserialization, and conversion.
 
-#### Selecting All Fields
-```java
-List<MyEntity> entities = repository.findAll();
-List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities);
-```
-Output example:
-```json
-[
-  { "id": 1, "name": "John", "surname": "Doe" },
-  { "id": 2, "name": "Jane", "surname": "Doe" }
-]
-```
+Microservices that use this library are encouraged to build their own `ObjectMapper` via `defaultMapperBuilder()`, register any project-specific mix-ins, subtypes, or modules on the builder, and then call `setDefaultObjectMapper(mapper)` so that all `JacksonUtil` helper methods use the same customized instance.
 
-#### Selecting Specific Fields
-```java
-String fields = "id,name";
-List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities, fields);
-```
-Output example:
-```json
-[
-  { "id": 1, "name": "John" },
-  { "id": 2, "name": "Jane" }
-]
-```
+**Key methods:**
 
-#### Selecting Nested Fields
-You can specify as many nested fields as you want, however the maximum supported depth is 10.
+| Method | Description |
+|---|---|
+| `defaultMapperBuilder()` | Returns a `JsonMapper.Builder` pre-configured with the opentmf defaults (NON_NULL, disabled timestamps, permissive OffsetDateTime deserializer, etc.). Customize and call `build()` to create your own mapper. |
+| `setDefaultObjectMapper(ObjectMapper)` | Replaces the singleton used by all utility methods. Call once at startup after building a customized mapper. |
+| `getDefaultObjectMapper()` | Returns the current singleton. **Do not mutate directly** — use the builder pattern above. |
+| `jsonToObject` / `objectToJson` | JSON string ↔ object conversion. |
+| `objectToPrettyJson` | Serializes to a pretty-printed JSON string (2-space indentation, LF line endings). |
+| `objectToTree` / `jsonToTree` / `treeToObject` | Conversions between objects, JSON strings, and `JsonNode` trees. |
+| `convertValue` | Object-to-object type conversion (e.g. `Map` to DTO). |
+| `merge` | PATCH-style partial update — applies a JSON fragment onto an existing object. |
+| `objectToMap` | Converts an object to an ordered `Map<String, Object>`. |
+| `fileToObject` / `fileToTree` | Read JSON from classpath resources or files. |
+| `jsonToTypeReference` / `jsonToMap` | Deserialize to generic types or maps. |
+| `contents` / `inputStream` | Read classpath text resources. |
+
+**Recommended usage in Spring Boot microservices:**
 
 ```java
-String fields = "id,classroom.id,classroom.buildingName";
-List<Map<String, Object>> results = FieldSelectionUtil.fieldsToMapList(entities, fields);
-```
-Output example:
-```json
-[
-  {
-    "id": 1,
-    "classroom": {
-      "id": 101,
-      "buildingName": "Main Building"
-    }
+@Configuration
+public class JacksonConfig {
+
+  @Primary
+  @Bean
+  public ObjectMapper objectMapper() {
+    var builder = JacksonUtil.defaultMapperBuilder();
+
+    // register your project-specific extensions
+    Tmf641JacksonConfig.registerExtensions(builder);
+
+    // build once, sync back to JacksonUtil
+    var mapper = builder.build();
+    JacksonUtil.setDefaultObjectMapper(mapper);
+    return mapper;
   }
-]
+}
 ```
 
-#### Field Selection Rules
-1. **Comma-separated Fields:** Specify fields using commas, e.g., `id,name`.
-2. **Nested Fields:** Use dot notation for nested fields, e.g., `classroom.id,classroom.professor.name`.
-3. **Collections:** Automatically resolves nested collections, e.g., `students.id` retrieves IDs from each student.
-
----
+> **Note:** Call `build()` only once per builder. Each call to `defaultMapperBuilder()` returns a fresh builder.
 
 ### ValidationUtil
-- Provides on-demand Java (Jakarta) Bean validation
+
+Provides on-demand Jakarta Bean Validation without requiring a Spring context.
+
+- `validate(object)` — returns the set of constraint violations.
+- `ensureValid(object)` — validates and throws a `ConstraintViolationException` with a descriptive message if any violations are found.
 
 ### ListUtil
-- Provides safe list constructors.
+
+Provides safe list constructors:
+- `safe(list)` — returns an immutable copy (or empty list if null).
+- `safeMutable(list)` — returns a mutable copy (or new empty list if null).
 
 ### PropertyUtil
-- Provides a utility method to find environment variable name that overrides a property.
+
+Provides a utility method to find the environment variable name that overrides a given property.
 
 ### UrlUtil
-- Provides useful utility methods to construct, parse or ensure Http URLs.
 
-### Additional Bean Validation Annotations
+Provides utility methods to construct, parse, or ensure HTTP URLs.
+
+### Bean Validation Annotations
 
 #### `@Required`
-- Class level NotNull annotation for multiple fields.
-- Validates only and only if, at the time of the validation, the initialized @Required belongs to the actual declaring class itself, not to a parent class.
+
+Class-level NotNull annotation for multiple fields.
+
+- Validates only when the `@Required` annotation belongs to the actual runtime class or one of its directly implemented interfaces — not to a parent class. This allows each level in a class hierarchy to define its own set of required fields independently.
+- Resolves `@JsonProperty` names from fields, interface getters (including `isXxx()` for booleans), and parent interface getters.
 
 #### `@SafeText`
-- Allows only certain safe characters within the text field to defend against potential code injection attacks. 
-- The allowed characters are:
-  - Alphanumeric characters
-  - Minus (-)
-  - Plus (+)
-  - Space ( )
-  - Asterisk (*)
-  - Slash (/)
-  - Dot (.)
-  - Colon (:)
-  - Underscore (_)
+
+Allows only certain safe characters within a text field to defend against code injection attacks. Silently passes for non-`CharSequence` types (e.g. `Object` fields).
+
+The allowed characters are:
+- Alphanumeric characters
+- Minus (`-`), Plus (`+`), Percent (`%`)
+- Space, Asterisk (`*`), Slash (`/`)
+- Dot (`.`), Colon (`:`), Underscore (`_`)
 
 #### `@SafeId`
-- Allows only certain safe characters within the text field to defend against potential code injection attacks.
-- The allowed characters are:
-  - Alphanumeric characters
-  - Minus (-)
-  - Underscore (_)
+
+Allows only safe identifier characters:
+- Alphanumeric characters
+- Minus (`-`), Underscore (`_`)
 
 #### `@SafeJsonPath`
-- Allows only certain safe characters to exist in a jsonPath string.
-- The allowed regex is:
-  - `Pattern.compile("^[\\w-+%$'~\\[\\](|):,?<>=&!@*./ ]*$")`
+
+Allows only characters valid in JSONPath expressions.
+
+Allowed regex: `^[\w-+%$'~\[\](|):,?<>=&!@*./ ]*$`
 
 #### `@SafeQuery`
-- Allows only certain safe characters to exist in a query string. 
-- The allowed characters are:
-  - Alphanumeric characters
-  - Equals (=)
-  - Minus (-)
-  - Plus (+)
-  - Space ( )
-  - Asterisk (*)
-  - Dot (.)
-  - Underscore (_)
-  - Ampersand (&) Usage
+
+Allows only safe query string characters:
+- Alphanumeric characters
+- Equals (`=`), Minus (`-`), Plus (`+`)
+- Space, Asterisk (`*`), Dot (`.`)
+- Underscore (`_`), At sign (`@`), Ampersand (`&`)
 
 ## Usage
 
 ### Maven Dependency
-Many opentmf-commons libraries depend on this base library. In most cases not necessary to explicitly include the dependency. 
 
-In any way, if you want to directly depend on this utility, the best way is, after importing the managed dependencies of the opentmf-commons repositories: 
+Many opentmf libraries depend on this base library. In most cases it is not necessary to explicitly include the dependency.
+
+If you want to depend on it directly, the recommended way is to first import the managed dependency versions:
 
 ```xml
 <dependencyManagement>
@@ -143,34 +136,20 @@ In any way, if you want to directly depend on this utility, the best way is, aft
   </dependencies>
 </dependencyManagement>
 ```
-> Note that instead of `RELEASE`, you might want to specify a static version number to retain build predictability for the future.
 
-And then we will be able to depend on this opentmf-commons library without specifying a version.
+> Instead of `RELEASE`, you may want to specify a fixed version number for build reproducibility.
+
+Then add the dependency without a version:
+
 ```xml
 <dependency>
   <groupId>org.opentmf.commons</groupId>
   <artifactId>opentmf-commons</artifactId>
 </dependency>
 ```
-Of course, you can opt to specify a version number explicitly as well, bypassing the above dependency import section.
 
-## Version History
-### 1.0.0
-- Initial Version
-### 1.0.1
-- Fixes OffsetDateTime deserializer to prevent losing the original timezone designator.
-- Updates to Spring Boot 3.4.1
-- Adds FieldSelectionUtil.
-### 1.0.2
-- FieldSelectionUtil has been moved to org.opentmf.commons.util.fieldselection package.
-- FieldSelectionUtil now handles EmbeddedId fields. Instead of id.field1, id.field2, it exposes them as field1, field2 by default.  
-### 1.0.3
-- Preparations to move to central repository  
-### 1.0.4
-- Initial central repository release.  
-### 1.0.5
-- Fix: Handles empty string and null values in OffsetDateTime deserialization
-### 1.0.6
-- Improvement: Handle also the numeric values in OffsetDateTime deserialization
-### 1.0.7
-- Fix: JacksonUtil's inputStream method now uses the current thread's classloader to load the classpath resource.
+You can also specify the version explicitly, bypassing the BOM import.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.

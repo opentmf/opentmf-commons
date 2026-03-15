@@ -24,6 +24,7 @@ public final class ListUtil {
    * If the list is null, returns an empty immutable list.
    *
    * @param list the list to make safe
+   * @param <T> the element type
    * @return a safe (immutable) version of the given list.
    */
   public static <T> List<T> safe(List<T> list) {
@@ -38,6 +39,7 @@ public final class ListUtil {
    * If the list is null, returns a new empty ArrayList.
    *
    * @param list the list to make safe
+   * @param <T> the element type
    * @return a safe (mutable) version of the given list
    */
   public static <T> List<T> safeMutable(List<T> list) {

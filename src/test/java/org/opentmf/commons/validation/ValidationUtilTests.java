@@ -70,8 +70,8 @@ class ValidationUtilTests {
     var obj = fileToObject("json/characteristics_invalid.json", CharacteristicList.class);
     var e = assertThrows(ConstraintViolationException.class, () -> ensureValid(obj));
     assertTrue(e.getMessage().startsWith("Object has 2 validation errors."));
-    assertTrue(e.getMessage().contains("characteristics[0].name = <name> --> Only alphanumeric characters"));
-    assertTrue(e.getMessage().contains("characteristics[0].valueType =  --> size must be between"));
+    assertTrue(e.getMessage().contains("characteristics[0].name --> Only alphanumeric characters"));
+    assertTrue(e.getMessage().contains("characteristics[0].valueType --> size must be between"));
   }
 
   @Test
@@ -96,7 +96,7 @@ class ValidationUtilTests {
     assertTrue(message.contains("Missing values for the required [name]"));
     assertTrue(message.contains("Missing values for the required [value]"));
     assertTrue(message.contains("Missing values for the required [name, value]"));
-    assertTrue(message.contains("characteristics[1].value = null --> must not be null"));
+    assertTrue(message.contains("characteristics[1].value --> must not be null"));
     Arrays.stream(message.split("Violation")).forEach(log::debug);
   }
 }

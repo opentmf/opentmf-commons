@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
@@ -29,7 +30,10 @@ public class RequiredValidator implements ConstraintValidator<Required, Object> 
 
   @Override
   public boolean isValid(Object obj, ConstraintValidatorContext context) {
-    var thisRequired = obj.getClass().getDeclaredAnnotation(Required.class);
+    if (obj == null) {
+      return true;
+    }
+    var thisRequired = findRequired(obj.getClass());
     if (thisRequired == null || thisRequired != required) {
       return true;
     }
@@ -52,16 +56,74 @@ public class RequiredValidator implements ConstraintValidator<Required, Object> 
     return true;
   }
 
+  /**
+   * Finds @Required on the class itself, then on directly implemented interfaces.
+   */
+  private Required findRequired(Class<?> clazz) {
+    var declared = clazz.getDeclaredAnnotation(Required.class);
+    if (declared != null) {
+      return declared;
+    }
+    for (Class<?> iface : clazz.getInterfaces()) {
+      var fromIface = iface.getDeclaredAnnotation(Required.class);
+      if (fromIface != null) {
+        return fromIface;
+      }
+    }
+    return null;
+  }
+
   private String jsonName(Object obj, String name) {
     var field = getField(obj.getClass(), name);
-    if (field == null) {
-      return name;
+    if (field != null) {
+      var jsonProperty = field.getAnnotation(JsonProperty.class);
+      if (jsonProperty != null && !jsonProperty.value().isEmpty()) {
+        return jsonProperty.value();
+      }
     }
-    var jsonProperty = field.getAnnotation(JsonProperty.class);
-    if (jsonProperty == null || jsonProperty.value().isEmpty()) {
-      return name;
+    var fromMethod = getJsonPropertyFromInterfaces(obj.getClass(), name);
+    if (fromMethod != null) {
+      return fromMethod;
     }
-    return jsonProperty.value();
+    return name;
+  }
+
+  /**
+   * Looks for @JsonProperty on the getter method in implemented interfaces.
+   */
+  private String getJsonPropertyFromInterfaces(Class<?> clazz, String fieldName) {
+    String suffix = Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+    String[] candidates = {"get" + suffix, "is" + suffix};
+    for (Class<?> iface : clazz.getInterfaces()) {
+      for (String getter : candidates) {
+        var value = findJsonPropertyOnMethod(iface, getter);
+        if (value != null) {
+          return value;
+        }
+      }
+      for (Class<?> parentIface : iface.getInterfaces()) {
+        for (String getter : candidates) {
+          var value = findJsonPropertyOnMethod(parentIface, getter);
+          if (value != null) {
+            return value;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private String findJsonPropertyOnMethod(Class<?> iface, String methodName) {
+    try {
+      Method method = iface.getDeclaredMethod(methodName);
+      var jsonProperty = method.getAnnotation(JsonProperty.class);
+      if (jsonProperty != null && !jsonProperty.value().isEmpty()) {
+        return jsonProperty.value();
+      }
+    } catch (NoSuchMethodException ignored) {
+      // getter not declared on this interface
+    }
+    return null;
   }
 
   private Field getField(Class<?> clazz, String name) {

@@ -26,9 +26,12 @@ import org.opentmf.commons.validation.SafeJsonPathValidator;
 @Retention(RUNTIME)
 public @interface SafeJsonPath {
 
+  /** @return the error message template. */
   String message() default "Only alphanumeric and JsonPath special characters are allowed.";
 
+  /** @return the validation groups. */
   Class<?>[] groups() default {};
 
+  /** @return the payload. */
   Class<? extends Payload>[] payload() default {};
 }

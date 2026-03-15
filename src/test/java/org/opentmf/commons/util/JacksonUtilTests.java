@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opentmf.commons.util.JacksonUtil.contents;
+import static org.opentmf.commons.util.JacksonUtil.convertValue;
+import static org.opentmf.commons.util.JacksonUtil.defaultMapperBuilder;
 import static org.opentmf.commons.util.JacksonUtil.fileToObject;
 import static org.opentmf.commons.util.JacksonUtil.fileToTree;
 import static org.opentmf.commons.util.JacksonUtil.getDefaultObjectMapper;
@@ -19,20 +21,22 @@ import static org.opentmf.commons.util.JacksonUtil.jsonToMap;
 import static org.opentmf.commons.util.JacksonUtil.jsonToObject;
 import static org.opentmf.commons.util.JacksonUtil.jsonToTree;
 import static org.opentmf.commons.util.JacksonUtil.jsonToTypeReference;
+import static org.opentmf.commons.util.JacksonUtil.merge;
 import static org.opentmf.commons.util.JacksonUtil.objectToJson;
+import static org.opentmf.commons.util.JacksonUtil.objectToMap;
 import static org.opentmf.commons.util.JacksonUtil.objectToPrettyJson;
 import static org.opentmf.commons.util.JacksonUtil.objectToTree;
+import static org.opentmf.commons.util.JacksonUtil.setDefaultObjectMapper;
 import static org.opentmf.commons.util.JacksonUtil.streamToObject;
 import static org.opentmf.commons.util.JacksonUtil.treeToObject;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.node.ObjectNode;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +45,7 @@ import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.Setter;
@@ -84,7 +89,7 @@ class JacksonUtilTests {
   @ParameterizedTest
   @MethodSource("offsetDateTimeConversionExpectations")
   void testOffsetDateTimeDeserialization_withSupportedFormat_returnsExpectedResult(
-      String input, String expected) throws JsonProcessingException {
+      String input, String expected) {
     var json = "{\"time\": \"" + input + "\"}";
     var model = JacksonUtil.getDefaultObjectMapper().readValue(json, SomeModel.class);
     Assertions.assertEquals(expected, model.getTime().toString());
@@ -108,8 +113,8 @@ class JacksonUtilTests {
   @Test
   void testOffsetDateTimeDeserialization_withOutOfRangeLong_throwsException() {
     var json = "{\"time\": 174698432651900098746908000}";
-    ObjectMapper defaultObjectMapper = getDefaultObjectMapper();
-    assertThrows(JsonMappingException.class, () -> defaultObjectMapper.readValue(json, SomeModel.class));
+    var mapper = getDefaultObjectMapper();
+    assertThrows(JacksonException.class, () -> mapper.readValue(json, SomeModel.class));
   }
 
   @ParameterizedTest
@@ -132,6 +137,38 @@ class JacksonUtilTests {
   @Test
   void test_getDefaultObjectMapper_returnsValidObject() {
     Assertions.assertNotNull(JacksonUtil.getDefaultObjectMapper());
+  }
+
+  @Test
+  void test_defaultMapperBuilder_buildsMapperWithExpectedDefaults() {
+    var mapper = defaultMapperBuilder().build();
+    assertNotNull(mapper);
+    assertThat(mapper.serializationConfig()
+        .getDefaultPropertyInclusion().getValueInclusion())
+        .isEqualTo(JsonInclude.Include.NON_NULL);
+  }
+
+  @Test
+  void test_defaultMapperBuilder_builtMapperSerializesOffsetDateTimeCorrectly() {
+    var mapper = defaultMapperBuilder().build();
+    var timePeriod = new TimePeriod();
+    timePeriod.setStartDateTime(OffsetDateTime.now());
+    var json = assertDoesNotThrow(() -> mapper.writeValueAsString(timePeriod));
+    assertThat(json).doesNotContain("1970");
+  }
+
+  @Test
+  void test_setDefaultObjectMapper_changesMapperUsedByUtilityMethods() {
+    var original = getDefaultObjectMapper();
+    try {
+      var custom = defaultMapperBuilder().build();
+      setDefaultObjectMapper(custom);
+      assertThat(getDefaultObjectMapper()).isSameAs(custom);
+      assertThat(getDefaultObjectMapper()).isNotSameAs(original);
+      assertNotNull(objectToJson(new Addressable()));
+    } finally {
+      setDefaultObjectMapper(original);
+    }
   }
 
   @Test
@@ -211,15 +248,21 @@ class JacksonUtilTests {
   }
 
   @Test
-  void test_streamToObject_withValidData_returnsValidObject() {
-    Assertions.assertNotNull(
-        streamToObject(inputStream("json/addressable_valid.json"), Addressable.class));
+  void test_streamToObject_withValidData_returnsValidObject() throws Exception {
+    try (var is = inputStream("json/addressable_valid.json")) {
+      Assertions.assertNotNull(streamToObject(is, Addressable.class));
+    }
+  }
+
+  @Test
+  void test_inputStream_withNonExistentResource_throwsException() {
+    assertThrows(IllegalArgumentException.class, () -> inputStream("does/not/exist.json"));
   }
 
   @Test
   void test_jsonToObject_withInvalidData_throwsException() {
     var e = assertThrows(Exception.class, () -> jsonToObject(INVALID_JSON, Addressable.class));
-    Assertions.assertInstanceOf(JsonProcessingException.class, ExceptionUtils.getRootCause(e));
+    Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
   }
 
   @Test
@@ -233,7 +276,7 @@ class JacksonUtilTests {
         assertThrows(
             Exception.class,
             () -> fileToObject("json/addressable_invalid.json", Addressable.class));
-    Assertions.assertInstanceOf(JsonProcessingException.class, ExceptionUtils.getRootCause(e));
+    Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
   }
 
   @Test
@@ -285,20 +328,30 @@ class JacksonUtilTests {
   void test_objectToJson_withMockObject_throwsException() {
     Object badObject = mock(Object.class);
     when(badObject.toString()).thenReturn(badObject.getClass().getName());
-    getDefaultObjectMapper().enable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    Exception e = assertThrows(Exception.class, () -> objectToJson(badObject));
-    getDefaultObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    Assertions.assertInstanceOf(JsonProcessingException.class, ExceptionUtils.getRootCause(e));
+    var original = getDefaultObjectMapper();
+    try {
+      setDefaultObjectMapper(defaultMapperBuilder()
+          .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build());
+      Exception e = assertThrows(Exception.class, () -> objectToJson(badObject));
+      Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
+    } finally {
+      setDefaultObjectMapper(original);
+    }
   }
 
   @Test
   void test_objectToPrettyJson_withMockObject_throwsException() {
     Object badObject = mock(Object.class);
     when(badObject.toString()).thenReturn(badObject.getClass().getName());
-    getDefaultObjectMapper().enable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    Exception e = assertThrows(Exception.class, () -> objectToPrettyJson(badObject));
-    getDefaultObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    Assertions.assertInstanceOf(JsonProcessingException.class, ExceptionUtils.getRootCause(e));
+    var original = getDefaultObjectMapper();
+    try {
+      setDefaultObjectMapper(defaultMapperBuilder()
+          .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build());
+      Exception e = assertThrows(Exception.class, () -> objectToPrettyJson(badObject));
+      Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
+    } finally {
+      setDefaultObjectMapper(original);
+    }
   }
 
   @Test
@@ -316,7 +369,7 @@ class JacksonUtilTests {
     var e =
         assertThrows(
             IllegalArgumentException.class, () -> jsonToTypeReference(json, typeReference));
-    Assertions.assertInstanceOf(JsonProcessingException.class, ExceptionUtils.getRootCause(e));
+    Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
   }
 
   @Test
@@ -325,6 +378,68 @@ class JacksonUtilTests {
     var map = jsonToMap(json);
     Assertions.assertNotNull(map);
     assertEquals(2, map.size());
+  }
+
+  @Test
+  void test_convertValue_fromMapToObject_returnsTypedObject() {
+    var map = Map.of("id", "abc123", "href", "https://host/Attachment/abc123");
+    var result = convertValue(map, Addressable.class);
+    assertNotNull(result);
+    assertEquals("abc123", result.getId());
+    assertEquals(URI.create("https://host/Attachment/abc123"), result.getHref());
+  }
+
+  @Test
+  void test_convertValue_fromObjectToObject_returnsConvertedObject() {
+    var source = jsonToObject(JSON, Addressable.class);
+    var result = convertValue(source, Addressable.class);
+    assertThat(result).usingRecursiveComparison().isEqualTo(source);
+  }
+
+  @Test
+  void test_treeToObject_withTypeReference_returnsGenericType() {
+    var json = contents("json/time_period_list.json");
+    var tree = jsonToTree(json);
+    var result = treeToObject(tree, new TypeReference<List<TimePeriod>>() {});
+    assertNotNull(result);
+    assertEquals(2, result.size());
+  }
+
+  @Test
+  void test_treeToObject_withTypeReference_andInvalidData_throwsException() {
+    var tree = jsonToTree("{\"key\": \"value\"}");
+    var ref = new TypeReference<List<TimePeriod>>() {};
+    assertThrows(IllegalArgumentException.class, () -> treeToObject(tree, ref));
+  }
+
+  @Test
+  void test_merge_appliesPartialUpdate() {
+    var original = jsonToObject(JSON, Addressable.class);
+    var patched = merge(original, "{\"id\": \"updated\"}");
+    assertEquals("updated", patched.getId());
+    assertEquals(URI.create("https://host/Attachment/305f2215715f"), patched.getHref());
+  }
+
+  @Test
+  void test_merge_withInvalidJson_throwsException() {
+    var original = jsonToObject(JSON, Addressable.class);
+    assertThrows(IllegalArgumentException.class, () -> merge(original, "{ invalid }"));
+  }
+
+  @Test
+  void test_objectToMap_returnsMapWithFieldValues() {
+    var obj = jsonToObject(JSON, Addressable.class);
+    var map = objectToMap(obj);
+    assertNotNull(map);
+    assertEquals("305f2215715f", map.get("id"));
+    assertEquals("https://host/Attachment/305f2215715f", map.get("href"));
+  }
+
+  @Test
+  void test_objectToMap_returnsOrderedMap() {
+    var obj = jsonToObject(JSON, Addressable.class);
+    var map = objectToMap(obj);
+    assertInstanceOf(java.util.LinkedHashMap.class, map);
   }
 
   @ParameterizedTest
