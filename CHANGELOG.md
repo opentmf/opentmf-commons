@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.1 - 2026-03-20
+
+### Changed
+- Updated Spring Boot dependencies to 4.0.4
+
 ## 2.0.0 - 2026-03-14
 
 ### Breaking Changes
