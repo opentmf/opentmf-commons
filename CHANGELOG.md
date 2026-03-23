@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.0
+
+### Breaking Changes
+- Renamed `JacksonUtil.getDefaultObjectMapper()` → `getDefaultJsonMapper()` (returns `JsonMapper`).
+- Renamed `JacksonUtil.setDefaultObjectMapper(ObjectMapper)` → `setDefaultJsonMapper(JsonMapper)`.
+
+### Changed
+- Introduced `release` Maven profile — source jar, javadoc jar, GPG signing, and central publishing now only run with `-Prelease`.
+- Javadoc example `@Bean` method returns `JsonMapper` (not `ObjectMapper`) for correct Spring Boot 4 conditional bean detection.
+- Added Spring Boot compatibility note to `defaultMapperBuilder()` javadoc.
+- Rewritten README documentation.
+
 ## 2.0.1 - 2026-03-20
 
 ### Changed

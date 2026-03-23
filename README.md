@@ -12,15 +12,15 @@ Each public utility class and its public methods have Javadoc documentation. Bel
 
 Provides a pre-configured `ObjectMapper` and a rich set of static helper methods for JSON serialization, deserialization, and conversion.
 
-Microservices that use this library are encouraged to build their own `ObjectMapper` via `defaultMapperBuilder()`, register any project-specific mix-ins, subtypes, or modules on the builder, and then call `setDefaultObjectMapper(mapper)` so that all `JacksonUtil` helper methods use the same customized instance.
+Microservices that use this library are encouraged to build their own `JsonMapper` via `defaultMapperBuilder()`, register any project-specific mix-ins, subtypes, or modules on the builder, and then call `setDefaultJsonMapper(mapper)` so that all `JacksonUtil` helper methods use the same customized instance.
 
 **Key methods:**
 
 | Method | Description |
 |---|---|
-| `defaultMapperBuilder()` | Returns a `JsonMapper.Builder` pre-configured with the opentmf defaults (NON_NULL, disabled timestamps, permissive OffsetDateTime deserializer, etc.). Customize and call `build()` to create your own mapper. |
-| `setDefaultObjectMapper(ObjectMapper)` | Replaces the singleton used by all utility methods. Call once at startup after building a customized mapper. |
-| `getDefaultObjectMapper()` | Returns the current singleton. **Do not mutate directly** — use the builder pattern above. |
+| `defaultMapperBuilder()` | Returns a `JsonMapper.Builder` pre-configured with the opentmf defaults (NON_NULL, permissive OffsetDateTime deserializer, etc.). Customize and call `build()` to create your own mapper. |
+| `setDefaultJsonMapper(JsonMapper)` | Replaces the singleton used by all utility methods. Call once at startup after building a customized mapper. |
+| `getDefaultJsonMapper()` | Returns the current singleton. **Do not mutate directly** — use the builder pattern above. |
 | `jsonToObject` / `objectToJson` | JSON string ↔ object conversion. |
 | `objectToPrettyJson` | Serializes to a pretty-printed JSON string (2-space indentation, LF line endings). |
 | `objectToTree` / `jsonToTree` / `treeToObject` | Conversions between objects, JSON strings, and `JsonNode` trees. |
@@ -39,7 +39,7 @@ public class JacksonConfig {
 
   @Primary
   @Bean
-  public ObjectMapper objectMapper() {
+  public JsonMapper jsonMapper() {
     var builder = JacksonUtil.defaultMapperBuilder();
 
     // register your project-specific extensions
@@ -47,13 +47,15 @@ public class JacksonConfig {
 
     // build once, sync back to JacksonUtil
     var mapper = builder.build();
-    JacksonUtil.setDefaultObjectMapper(mapper);
+    JacksonUtil.setDefaultJsonMapper(mapper);
     return mapper;
   }
 }
 ```
 
 > **Note:** Call `build()` only once per builder. Each call to `defaultMapperBuilder()` returns a fresh builder.
+
+> **Spring Boot note:** A mapper built via `defaultMapperBuilder()` does not inherit settings from `spring.jackson.*` properties. This is intentional — the builder provides a consistent baseline across all microservices that use this library. Returning `JsonMapper` (not `ObjectMapper`) ensures Spring Boot 4 detects the bean and does not auto-configure a second mapper.
 
 ### ValidationUtil
 

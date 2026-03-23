@@ -25,7 +25,6 @@ import tools.jackson.core.util.DefaultIndenter;
 import tools.jackson.core.util.DefaultPrettyPrinter;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ValueDeserializer;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
@@ -37,12 +36,12 @@ public final class JacksonUtil {
 
   private static final SimpleModule PERMISSIVE_DATETIME_MODULE = new SimpleModule();
   private static final DefaultPrettyPrinter PRETTY_PRINTER;
-  private static volatile ObjectMapper OBJECT_MAPPER;
+  private static volatile JsonMapper JSON_MAPPER;
 
   static {
     PERMISSIVE_DATETIME_MODULE.addDeserializer(OffsetDateTime.class,
         new PermissiveDateTimeDeserializer());
-    OBJECT_MAPPER = defaultMapperBuilder().build();
+    JSON_MAPPER = defaultMapperBuilder().build();
 
     var indenter = new DefaultIndenter("  ", "\n");
     PRETTY_PRINTER = new DefaultPrettyPrinter()
@@ -64,13 +63,13 @@ public final class JacksonUtil {
    * <p><strong>Important:</strong> Do not mutate the returned instance directly. Instead, use
    * {@link #defaultMapperBuilder()} to create a pre-configured builder, customize it (e.g. add
    * mix-ins, subtypes, modules), build a new mapper, and then call
-   * {@link #setDefaultObjectMapper(ObjectMapper)} so that the utility methods in this class use
+   * {@link #setDefaultJsonMapper(JsonMapper)} so that the utility methods in this class use
    * the customized instance.
    *
-   * @return the default object mapper.
+   * @return the default JSON mapper.
    */
-  public static ObjectMapper getDefaultObjectMapper() {
-    return OBJECT_MAPPER;
+  public static JsonMapper getDefaultJsonMapper() {
+    return JSON_MAPPER;
   }
 
   /**
@@ -93,15 +92,19 @@ public final class JacksonUtil {
    *
    *   @Primary
    *   @Bean
-   *   public ObjectMapper objectMapper() {
+   *   public JsonMapper jsonMapper() {
    *     var mapper = JacksonUtil.defaultMapperBuilder()
    *         .addMixIn(Foo.class, FooMixin.class)
    *         .build();
-   *     JacksonUtil.setDefaultObjectMapper(mapper);
+   *     JacksonUtil.setDefaultJsonMapper(mapper);
    *     return mapper;
    *   }
    * }
    * }</pre>
+   *
+   * <p><strong>Note:</strong> A mapper built this way does not inherit settings from
+   * {@code spring.jackson.*} properties. This is intentional — the builder provides a
+   * consistent baseline across all microservices that use this library.
    *
    * @return a pre-configured builder.
    */
@@ -113,14 +116,14 @@ public final class JacksonUtil {
   }
 
   /**
-   * Replaces the default object mapper used by all utility methods in this class. Typically called
+   * Replaces the default JSON mapper used by all utility methods in this class. Typically called
    * once during application startup after building a customized mapper via
    * {@link #defaultMapperBuilder()}.
    *
-   * @param objectMapper the customized object mapper to use.
+   * @param jsonMapper the customized JSON mapper to use.
    */
-  public static void setDefaultObjectMapper(ObjectMapper objectMapper) {
-    OBJECT_MAPPER = objectMapper;
+  public static void setDefaultJsonMapper(JsonMapper jsonMapper) {
+    JSON_MAPPER = jsonMapper;
   }
 
   /**
@@ -133,7 +136,7 @@ public final class JacksonUtil {
    */
   public static <T> T jsonToObject(String json, Class<T> clazz) {
     try {
-      return OBJECT_MAPPER.readValue(json, clazz);
+      return JSON_MAPPER.readValue(json, clazz);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -148,7 +151,7 @@ public final class JacksonUtil {
    */
   public static <T> String objectToJson(T object) {
     try {
-      return OBJECT_MAPPER.writeValueAsString(object);
+      return JSON_MAPPER.writeValueAsString(object);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -164,7 +167,7 @@ public final class JacksonUtil {
    */
   public static <T> String objectToPrettyJson(T object) {
     try {
-      return OBJECT_MAPPER.writer().with(PRETTY_PRINTER).writeValueAsString(object);
+      return JSON_MAPPER.writer().with(PRETTY_PRINTER).writeValueAsString(object);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -177,7 +180,7 @@ public final class JacksonUtil {
    * @return the JSON tree.
    */
   public static JsonNode objectToTree(Object object) {
-    return OBJECT_MAPPER.valueToTree(object);
+    return JSON_MAPPER.valueToTree(object);
   }
 
   /**
@@ -188,7 +191,7 @@ public final class JacksonUtil {
    */
   public static JsonNode jsonToTree(String json) {
     try {
-      return OBJECT_MAPPER.readTree(json);
+      return JSON_MAPPER.readTree(json);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -202,7 +205,7 @@ public final class JacksonUtil {
    */
   public static JsonNode fileToTree(String jsonFileNameInClassPath) {
     try {
-      return OBJECT_MAPPER.readTree(inputStream(jsonFileNameInClassPath));
+      return JSON_MAPPER.readTree(inputStream(jsonFileNameInClassPath));
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -216,7 +219,7 @@ public final class JacksonUtil {
    */
   public static JsonNode fileToTree(File file) {
     try {
-      return OBJECT_MAPPER.readTree(file);
+      return JSON_MAPPER.readTree(file);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -232,7 +235,7 @@ public final class JacksonUtil {
    */
   public static <T> T treeToObject(JsonNode tree, Class<T> clazz) {
     try {
-      return OBJECT_MAPPER.treeToValue(tree, clazz);
+      return JSON_MAPPER.treeToValue(tree, clazz);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -249,7 +252,7 @@ public final class JacksonUtil {
    */
   public static <T> T treeToObject(JsonNode tree, TypeReference<T> reference) {
     try {
-      return OBJECT_MAPPER.treeToValue(tree, reference);
+      return JSON_MAPPER.treeToValue(tree, reference);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -266,7 +269,7 @@ public final class JacksonUtil {
    * @return the converted object.
    */
   public static <T> T convertValue(Object source, Class<T> targetType) {
-    return OBJECT_MAPPER.convertValue(source, targetType);
+    return JSON_MAPPER.convertValue(source, targetType);
   }
 
   /**
@@ -280,7 +283,7 @@ public final class JacksonUtil {
    */
   public static <T> T merge(T target, String patchJson) {
     try {
-      return OBJECT_MAPPER.readerForUpdating(target).readValue(patchJson);
+      return JSON_MAPPER.readerForUpdating(target).readValue(patchJson);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -298,7 +301,7 @@ public final class JacksonUtil {
    */
   public static <T> T fileToObject(String jsonFileNameInClassPath, Class<T> clazz) {
     try {
-      return OBJECT_MAPPER.readValue(inputStream(jsonFileNameInClassPath), clazz);
+      return JSON_MAPPER.readValue(inputStream(jsonFileNameInClassPath), clazz);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -314,7 +317,7 @@ public final class JacksonUtil {
    */
   public static <T> T streamToObject(InputStream inputStream, Class<T> clazz) {
     try {
-      return OBJECT_MAPPER.readValue(inputStream, clazz);
+      return JSON_MAPPER.readValue(inputStream, clazz);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -330,7 +333,7 @@ public final class JacksonUtil {
    */
   public static <T> T jsonToTypeReference(String json, TypeReference<T> reference) {
     try {
-      return OBJECT_MAPPER.readValue(json, reference);
+      return JSON_MAPPER.readValue(json, reference);
     } catch (JacksonException e) {
       throw new IllegalArgumentException(e);
     }
@@ -353,7 +356,7 @@ public final class JacksonUtil {
    * @return a map of field names to values.
    */
   public static Map<String, Object> objectToMap(Object object) {
-    return OBJECT_MAPPER.convertValue(object, new TypeReference<LinkedHashMap<String, Object>>() {});
+    return JSON_MAPPER.convertValue(object, new TypeReference<LinkedHashMap<String, Object>>() {});
   }
 
   /**

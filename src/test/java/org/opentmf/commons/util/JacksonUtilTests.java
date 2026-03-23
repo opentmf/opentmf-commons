@@ -15,7 +15,7 @@ import static org.opentmf.commons.util.JacksonUtil.convertValue;
 import static org.opentmf.commons.util.JacksonUtil.defaultMapperBuilder;
 import static org.opentmf.commons.util.JacksonUtil.fileToObject;
 import static org.opentmf.commons.util.JacksonUtil.fileToTree;
-import static org.opentmf.commons.util.JacksonUtil.getDefaultObjectMapper;
+import static org.opentmf.commons.util.JacksonUtil.getDefaultJsonMapper;
 import static org.opentmf.commons.util.JacksonUtil.inputStream;
 import static org.opentmf.commons.util.JacksonUtil.jsonToMap;
 import static org.opentmf.commons.util.JacksonUtil.jsonToObject;
@@ -26,7 +26,7 @@ import static org.opentmf.commons.util.JacksonUtil.objectToJson;
 import static org.opentmf.commons.util.JacksonUtil.objectToMap;
 import static org.opentmf.commons.util.JacksonUtil.objectToPrettyJson;
 import static org.opentmf.commons.util.JacksonUtil.objectToTree;
-import static org.opentmf.commons.util.JacksonUtil.setDefaultObjectMapper;
+import static org.opentmf.commons.util.JacksonUtil.setDefaultJsonMapper;
 import static org.opentmf.commons.util.JacksonUtil.streamToObject;
 import static org.opentmf.commons.util.JacksonUtil.treeToObject;
 
@@ -91,7 +91,7 @@ class JacksonUtilTests {
   void testOffsetDateTimeDeserialization_withSupportedFormat_returnsExpectedResult(
       String input, String expected) {
     var json = "{\"time\": \"" + input + "\"}";
-    var model = JacksonUtil.getDefaultObjectMapper().readValue(json, SomeModel.class);
+    var model = JacksonUtil.getDefaultJsonMapper().readValue(json, SomeModel.class);
     Assertions.assertEquals(expected, model.getTime().toString());
   }
 
@@ -113,7 +113,7 @@ class JacksonUtilTests {
   @Test
   void testOffsetDateTimeDeserialization_withOutOfRangeLong_throwsException() {
     var json = "{\"time\": 174698432651900098746908000}";
-    var mapper = getDefaultObjectMapper();
+    var mapper = getDefaultJsonMapper();
     assertThrows(JacksonException.class, () -> mapper.readValue(json, SomeModel.class));
   }
 
@@ -135,8 +135,8 @@ class JacksonUtilTests {
   }
 
   @Test
-  void test_getDefaultObjectMapper_returnsValidObject() {
-    Assertions.assertNotNull(JacksonUtil.getDefaultObjectMapper());
+  void test_getDefaultJsonMapper_returnsValidObject() {
+    Assertions.assertNotNull(JacksonUtil.getDefaultJsonMapper());
   }
 
   @Test
@@ -158,16 +158,16 @@ class JacksonUtilTests {
   }
 
   @Test
-  void test_setDefaultObjectMapper_changesMapperUsedByUtilityMethods() {
-    var original = getDefaultObjectMapper();
+  void test_setDefaultJsonMapper_changesMapperUsedByUtilityMethods() {
+    var original = getDefaultJsonMapper();
     try {
       var custom = defaultMapperBuilder().build();
-      setDefaultObjectMapper(custom);
-      assertThat(getDefaultObjectMapper()).isSameAs(custom);
-      assertThat(getDefaultObjectMapper()).isNotSameAs(original);
+      setDefaultJsonMapper(custom);
+      assertThat(getDefaultJsonMapper()).isSameAs(custom);
+      assertThat(getDefaultJsonMapper()).isNotSameAs(original);
       assertNotNull(objectToJson(new Addressable()));
     } finally {
-      setDefaultObjectMapper(original);
+      setDefaultJsonMapper(original);
     }
   }
 
@@ -328,14 +328,14 @@ class JacksonUtilTests {
   void test_objectToJson_withMockObject_throwsException() {
     Object badObject = mock(Object.class);
     when(badObject.toString()).thenReturn(badObject.getClass().getName());
-    var original = getDefaultObjectMapper();
+    var original = getDefaultJsonMapper();
     try {
-      setDefaultObjectMapper(defaultMapperBuilder()
+      setDefaultJsonMapper(defaultMapperBuilder()
           .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build());
       Exception e = assertThrows(Exception.class, () -> objectToJson(badObject));
       Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
     } finally {
-      setDefaultObjectMapper(original);
+      setDefaultJsonMapper(original);
     }
   }
 
@@ -343,14 +343,14 @@ class JacksonUtilTests {
   void test_objectToPrettyJson_withMockObject_throwsException() {
     Object badObject = mock(Object.class);
     when(badObject.toString()).thenReturn(badObject.getClass().getName());
-    var original = getDefaultObjectMapper();
+    var original = getDefaultJsonMapper();
     try {
-      setDefaultObjectMapper(defaultMapperBuilder()
+      setDefaultJsonMapper(defaultMapperBuilder()
           .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS).build());
       Exception e = assertThrows(Exception.class, () -> objectToPrettyJson(badObject));
       Assertions.assertInstanceOf(JacksonException.class, ExceptionUtils.getRootCause(e));
     } finally {
-      setDefaultObjectMapper(original);
+      setDefaultJsonMapper(original);
     }
   }
 
