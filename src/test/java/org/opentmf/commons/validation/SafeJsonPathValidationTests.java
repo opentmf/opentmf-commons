@@ -26,6 +26,12 @@ class SafeJsonPathValidationTests {
   }
 
   @Test
+  void testSafeJsonPath_withUnicodeKey_permitsUse() {
+    var sample = new Sample("$.müşteri.ad");
+    assertDoesNotThrow(() -> ValidationUtil.ensureValid(sample));
+  }
+
+  @Test
   void testSafeJsonPath_withNullText_permitsUse() {
     var sample = new Sample(null);
     assertDoesNotThrow(() -> ValidationUtil.ensureValid(sample));

@@ -35,14 +35,14 @@ class SafeTextValidationTests {
   @Test
   void testSafeTextValidation_withInvalidValue_doesNotThrowException() {
     var entityRef = new EntityRef();
-    entityRef.setId("invalid-string_with!");
+    entityRef.setId("invalid-string_with;");
     entityRef.setName("invalid_<string>");
 
     var violations = validate(entityRef);
     assertThat(violations)
         .hasSize(2)
-        .allMatch(violation -> violation.getMessage().equals("Only alphanumeric characters, minus, "
-            + "plus, space, asterisk, slash, dot, colon and underscore are allowed."));
+        .allMatch(violation -> violation.getMessage().equals("Only letters, digits, spaces, and "
+            + "the characters _ - + % * . , : / ? ! ( ) and apostrophes are allowed."));
   }
 
   @Test
@@ -61,7 +61,20 @@ class SafeTextValidationTests {
       "file_name",
       "file-name",
       "file name",
-      "application/pdf"
+      "application/pdf",
+      "François",
+      "Hervé Jr.",
+      "Müller",
+      "Łukasz",
+      "İstanbul",
+      "O'Brien",
+      "l’Hôpital",
+      "Smith, John",
+      "100%",
+      "why?",
+      "wow!",
+      "foo (bar)",
+      "a/b/c"
   })
   void testSafeTextValidation_withValidStrings_matchesText(String s) {
     assertTrue(SAFE_TEXT.matches(s));
@@ -70,10 +83,21 @@ class SafeTextValidationTests {
   @ParameterizedTest
   @ValueSource(strings = {
       "https://www.address.com/<>",
-      "method()",
+      "<script>alert(1)</script>",
       "script:<>",
       "{}",
-      "[]"
+      "[]",
+      "\"quoted\"",
+      "foo;bar",
+      "key=value",
+      "${var}",
+      "`cmd`",
+      "back\\slash",
+      "pipe|chain",
+      "tilde~here",
+      "hash#tag",
+      "at@sign",
+      "caret^up"
   })
   void testSafeTextValidation_withDangerousStrings_fails(String s) {
     assertFalse(SAFE_TEXT.matches(s));

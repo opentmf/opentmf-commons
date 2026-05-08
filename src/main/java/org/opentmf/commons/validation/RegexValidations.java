@@ -8,9 +8,8 @@ import java.util.regex.Pattern;
 enum RegexValidations {
 
   SAFE_ID(Pattern.compile("^[\\w-]*$")),
-  SAFE_TEXT(Pattern.compile("^[\\w-+%*.:/ ]*$")),
-  SAFE_JSON_PATH(Pattern.compile("^[\\w-+%$'~\\[\\](|):,?<>=&!@*./ ]*$")),
-  SAFE_QUERY(Pattern.compile("^[\\w-+@*=&. ]*$"));
+  SAFE_TEXT(Pattern.compile("^[\\p{L}\\p{M}\\p{N}_ '’\\-+%*.,:/?!()]*$")),
+  SAFE_JSON_PATH(Pattern.compile("^[\\p{L}\\p{M}\\p{N}_\\-+%$'~\\[\\](|):,?<>=&!@*./ ]*$"));
 
   private final Pattern pattern;
 

@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.2.0 - 2026-05-08
+
+### Changed
+- Relaxed `@SafeText` to accept Unicode letters/marks/digits and a wider set of common
+  punctuation (apostrophe, comma, parentheses, `?`, `!`). International names such as
+  `François`, `O'Brien`, and `l’Hôpital` now validate. Characters commonly used in SQL
+  or script-injection payloads — angle brackets, double quotes, backticks, semicolons,
+  equals signs, braces, square brackets, backslash, pipe, dollar, hash, caret, tilde,
+  at-sign, and control characters — remain rejected.
+- Made `@SafeJsonPath` Unicode-aware so paths can reference non-Latin keys
+  (e.g. `$.müşteri.ad`). The character set is otherwise unchanged.
+- Documentation: enumerated the allowed characters in `@SafeJsonPath`'s JavaDoc,
+  added defense-in-depth notes to the `Safe*` annotations, and clarified in
+  `@SafeId`'s JavaDoc that the empty string is accepted (combine with `@Size(min = 1)`
+  or `@NotBlank` if presence is required).
+- The `Safe*` constraints remain defense-in-depth measures: parameterized queries,
+  structured filter parsing, and contextual output encoding are still required at the
+  boundaries that consume the validated values.
+
+### Added
+- `@SafeUrl` — validates that a value is a syntactically valid URL or relative URI
+  reference, suitable for TMF `href`, callback, and link fields. Backed by
+  `java.net.URI` parsing rather than regex character-class matching, so both absolute
+  URLs (`https://api.example.com/v1/customer/123`) and relative references
+  (`/customer/123`, `customer/123?expand=foo`) are accepted. Absolute URLs are
+  restricted to `http`/`https` schemes; `javascript:`, `data:`, `file:`, `ftp:`, and
+  `mailto:` are rejected. ASCII control characters (CR/LF used for header injection)
+  are rejected. For stricter absolute-only validation, prefer
+  `@org.hibernate.validator.constraints.URL` from Hibernate Validator — note however
+  that `@URL` does not accept relative references.
+
+### Deprecated
+- `@SafeQuery` is deprecated in favor of `@SafeUrl`. The annotation is retained as a
+  meta-composed synonym with identical semantics, so existing call sites continue to
+  work without behavior change; new code should use `@SafeUrl` directly. The original
+  regex-based validator (`SafeQueryValidator`) and the `SAFE_QUERY` regex are removed
+  — both are unreachable through the synonym composition. Migration is a
+  search-and-replace.
+
 ## 2.1.0
 
 ### Breaking Changes

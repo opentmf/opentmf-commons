@@ -87,35 +87,64 @@ Class-level NotNull annotation for multiple fields.
 - Validates only when the `@Required` annotation belongs to the actual runtime class or one of its directly implemented interfaces — not to a parent class. This allows each level in a class hierarchy to define its own set of required fields independently.
 - Resolves `@JsonProperty` names from fields, interface getters (including `isXxx()` for booleans), and parent interface getters.
 
+All `Safe*` constraints are **defense-in-depth** measures: parameterized queries (against SQL injection), structured parsing (for filters, JsonPath, URLs), and contextual output encoding (against XSS) must still be applied at the boundaries that consume the validated values.
+
 #### `@SafeText`
 
-Allows only certain safe characters within a text field to defend against code injection attacks. Silently passes for non-`CharSequence` types (e.g. `Object` fields).
+Allows only certain safe characters within a text field to defend against code injection attacks. Silently passes for non-`CharSequence` types (e.g. `Object` fields). Internationalized — accepts names like `François`, `O'Brien`, and `l’Hôpital`.
 
 The allowed characters are:
-- Alphanumeric characters
-- Minus (`-`), Plus (`+`), Percent (`%`)
-- Space, Asterisk (`*`), Slash (`/`)
-- Dot (`.`), Colon (`:`), Underscore (`_`)
+- Unicode letters and combining marks (`\p{L}`, `\p{M}`)
+- Unicode digits (`\p{N}`)
+- Space and Underscore (`_`)
+- Apostrophe (`'`) and right single quotation mark (`’`)
+- Minus (`-`), Plus (`+`)
+- Percent (`%`), Asterisk (`*`)
+- Dot (`.`), Comma (`,`), Colon (`:`)
+- Slash (`/`)
+- Question mark (`?`), Exclamation mark (`!`)
+- Parentheses (`(` and `)`)
+
+Angle brackets, double quotes, backticks, semicolons, equals signs, braces, square brackets, backslash, pipe, dollar, hash, caret, tilde, at-sign, and control characters are rejected.
 
 #### `@SafeId`
 
-Allows only safe identifier characters:
-- Alphanumeric characters
-- Minus (`-`), Underscore (`_`)
+Allows only ASCII-safe identifier characters. Intended for opaque identifiers such as UUIDs, slugs, and sequence numbers; for human-readable text use `@SafeText`.
+
+The allowed characters are:
+- ASCII letters (A–Z, a–z) and digits (0–9)
+- Underscore (`_`), Minus (`-`)
+
+The empty string is accepted; combine with `@Size(min = 1)` or `@NotBlank` to require presence.
 
 #### `@SafeJsonPath`
 
-Allows only characters valid in JSONPath expressions.
+Allows only characters valid in JSONPath expressions, with Unicode-aware key support so paths can reference non-Latin keys (e.g. `$.müşteri.ad`).
 
-Allowed regex: `^[\w-+%$'~\[\](|):,?<>=&!@*./ ]*$`
+Allowed regex: `^[\p{L}\p{M}\p{N}_\-+%$'~\[\](|):,?<>=&!@*./ ]*$`
 
-#### `@SafeQuery`
+This is a defense-in-depth pre-filter; the value should still be parsed by a real JsonPath engine (e.g. Jayway's `JsonPath.compile(...)`) before use.
 
-Allows only safe query string characters:
-- Alphanumeric characters
-- Equals (`=`), Minus (`-`), Plus (`+`)
-- Space, Asterisk (`*`), Dot (`.`)
-- Underscore (`_`), At sign (`@`), Ampersand (`&`)
+#### `@SafeUrl`
+
+Validates that the annotated value is a syntactically valid URL or relative URI reference, suitable for TMF `href`, callback, and link fields. Validation is performed by **parsing the value with `java.net.URI`**, not by regex character-class matching.
+
+Accepts:
+- Absolute URLs with `http` or `https` scheme (e.g. `https://api.example.com/v1/customer/123`)
+- Relative URI references (e.g. `/customer/123`, `customer/123?expand=foo`, `../sibling/123`, `#fragment-only`)
+- `null` and the empty string (combine with `@NotNull` / `@Size(min = 1)` / `@NotBlank` to require presence)
+
+Rejects:
+- Schemes other than `http`/`https` — including `javascript:`, `data:`, `file:`, `ftp:`, `mailto:`
+- Absolute URLs with no host
+- Strings containing ASCII control characters (CR/LF used for header injection, etc.)
+- Anything that fails `URI` parsing
+
+For stricter absolute-only validation (require https, pin a specific host, …) prefer `@org.hibernate.validator.constraints.URL` from Hibernate Validator — note however that `@URL` does **not** accept relative references, so it cannot replace `@SafeUrl` on fields that may hold either form.
+
+#### `@SafeQuery` _(deprecated)_
+
+Deprecated since 2.2.0, for removal. Retained as a meta-composed synonym for `@SafeUrl` so existing call sites keep working without behavior change. New code should use `@SafeUrl` directly. Migration is a search-and-replace.
 
 ## Usage
 

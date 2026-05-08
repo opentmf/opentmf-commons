@@ -10,38 +10,35 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
+import jakarta.validation.ReportAsSingleViolation;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-import org.opentmf.commons.validation.SafeQueryValidator;
 
 /**
- * Allows only certain safe characters to exist in a query string.
- * The allowed characters are:
- * <ul>
- *   <li>Alphanumeric characters</li>
- *   <li>Equals (=)</li>
- *   <li>Minus (-)</li>
- *   <li>Plus (+)</li>
- *   <li>Space ( )</li>
- *   <li>Asterisk (*)</li>
- *   <li>Dot (.)</li>
- *   <li>Underscore (_)</li>
- *   <li>At sign (@)</li>
- *   <li>Ampersand (&amp;)</li>
- * </ul>
+ * Validates that the annotated value is a syntactically valid URL or relative URI reference.
+ *
+ * <p>This is a meta-composed synonym for {@link SafeUrl}: the two annotations apply the
+ * same {@link org.opentmf.commons.validation.SafeUrlValidator} and accept exactly the same
+ * inputs. Existing call sites continue to work without behavior change.
  *
  * @author Gokhan Demir
+ * @deprecated since 2.2.0, for removal in a future major release. Use {@link SafeUrl}
+ *     instead. The {@code @SafeQuery} name predates the realization that the constraint is
+ *     about URL/href values rather than filter-query expressions; {@code @SafeUrl} states
+ *     the intent plainly. Migration is a search-and-replace.
  */
 @Documented
-@Constraint(validatedBy = {SafeQueryValidator.class})
+@Constraint(validatedBy = {})
 @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE})
 @Retention(RUNTIME)
+@ReportAsSingleViolation
+@SafeUrl
+@Deprecated(since = "2.2.0", forRemoval = true)
 public @interface SafeQuery {
 
   /** @return the error message template. */
-  String message() default "Only alphanumeric characters, equals, minus, plus, space, "
-      + "asterisk, dot, underscore, at sign and ampersand are allowed.";
+  String message() default "Must be a valid URL or relative URI reference using http/https.";
 
   /** @return the validation groups. */
   Class<?>[] groups() default {};

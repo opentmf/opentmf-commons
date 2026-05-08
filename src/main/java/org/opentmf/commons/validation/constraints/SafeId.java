@@ -16,14 +16,24 @@ import java.lang.annotation.Target;
 import org.opentmf.commons.validation.SafeIdValidator;
 
 /**
- * Allows only certain safe characters within the text field to defend against potential code
- * injection attacks.
- * The allowed characters are:
+ * Allows only ASCII-safe identifier characters to defend against potential code injection
+ * attacks. Intended for opaque identifiers such as UUIDs, slugs, and sequence numbers, where
+ * accented or non-Latin characters are not expected. For human-readable text use
+ * {@link SafeText} instead.
+ *
+ * <p>The allowed characters are:
  * <ul>
- *   <li>Alphanumeric characters</li>
- *   <li>Minus (-)</li>
+ *   <li>ASCII letters (A-Z, a-z) and digits (0-9)</li>
  *   <li>Underscore (_)</li>
+ *   <li>Minus (-)</li>
  * </ul>
+ *
+ * <p>The pattern accepts the empty string. To require a non-empty value, combine with
+ * {@code @Size(min = 1)} or {@code @NotBlank}.
+ *
+ * <p>This constraint is a defense-in-depth measure. Parameterized queries (against SQL
+ * injection) and contextual output encoding (against XSS) must still be applied at the
+ * boundaries that consume the validated value.
  *
  * @author Gokhan Demir
  */

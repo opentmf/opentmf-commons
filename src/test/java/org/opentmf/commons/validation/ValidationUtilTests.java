@@ -70,7 +70,7 @@ class ValidationUtilTests {
     var obj = fileToObject("json/characteristics_invalid.json", CharacteristicList.class);
     var e = assertThrows(ConstraintViolationException.class, () -> ensureValid(obj));
     assertTrue(e.getMessage().startsWith("Object has 2 validation errors."));
-    assertTrue(e.getMessage().contains("characteristics[0].name --> Only alphanumeric characters"));
+    assertTrue(e.getMessage().contains("characteristics[0].name --> Only letters, digits, spaces"));
     assertTrue(e.getMessage().contains("characteristics[0].valueType --> size must be between"));
   }
 

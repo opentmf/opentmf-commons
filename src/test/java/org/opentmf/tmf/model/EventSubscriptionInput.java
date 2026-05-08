@@ -20,6 +20,7 @@ public class EventSubscriptionInput {
   @NotNull
   private URI callback;
 
+  @SuppressWarnings("deprecation")
   @SafeQuery
   @Size(max = 500)
   private String query;
